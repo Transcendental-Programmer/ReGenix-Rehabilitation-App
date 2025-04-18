@@ -14,8 +14,8 @@ const connectDB = async () => {
 module.exports = connectDB;
 
 // .env.example
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/regenix
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRE=30d
-NODE_ENV=development
+// PORT=5000
+// MONGODB_URI="mongodb://localhost:27017/regenix"
+// JWT_SECRET=your_jwt_secret_key
+// JWT_EXPIRE="30d"
+// NODE_ENV=development

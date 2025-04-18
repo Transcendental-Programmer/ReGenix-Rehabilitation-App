@@ -46,3 +46,6 @@ Thumbs.db
 
 # Streamlit
 .streamlit/
+
+#.env in node_backend 
+.env
