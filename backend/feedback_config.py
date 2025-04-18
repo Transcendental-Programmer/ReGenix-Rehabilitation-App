@@ -218,3 +218,84 @@ JOINT_INDEX_MAP = {
     27: "left_ankle",
     28: "right_ankle"
 }
+
+# Advanced metrics for more comprehensive exercise analysis
+# These metrics provide research-backed parameters for more precise form evaluation
+
+# Squat advanced metrics
+SQUAT_METRICS = {
+    # Knee valgus (inward collapse) - frontal plane
+    "KNEE_VALGUS_MAX": 5.0,        # Maximum inward knee angle deviation (degrees)
+    
+    # Left-right symmetry
+    "KNEE_SYMMETRY_MAX": 3.0,      # Maximum acceptable difference between left/right knee angles
+    
+    # Tempo metrics (seconds)
+    "DESCENT_TIME_OPTIMAL": 2.0,   # Optimal time for descent phase (seconds)
+    "DESCENT_TIME_MIN": 1.0,       # Minimum acceptable descent time (seconds)
+    
+    # Hip-knee coordination
+    "HIP_KNEE_RATIO": 1.1,         # Optimal hip:knee flexion ratio (1.0-1.2 is ideal)
+    
+    # Bar path metrics (if applicable)
+    "BAR_PATH_DEVIATION_MAX": 0.05 # Maximum horizontal bar path deviation (normalized to height)
+}
+
+# Deadlift advanced metrics
+DEADLIFT_METRICS = {
+    # Spine curvature and neutrality
+    "LUMBAR_FLEXION_MAX": 10.0,    # Maximum lumbar flexion during lift (degrees)
+    
+    # Bar path metrics
+    "BAR_PATH_MAX_DISTANCE": 0.05, # Maximum horizontal distance from mid-foot (normalized)
+    
+    # Lift timing and coordination
+    "HIP_KNEE_EXTENSION_RATIO": 1.5, # Hip should extend ~1.5x faster than knees in top half
+    
+    # Weight distribution
+    "WEIGHT_SYMMETRY_MAX": 0.07,   # Maximum left-right weight imbalance (normalized)
+    
+    # Tempo metrics (seconds)
+    "CONCENTRIC_TIME_OPTIMAL": 1.5, # Optimal time for concentric phase (seconds)
+    "ECCENTRIC_TIME_OPTIMAL": 2.0   # Optimal time for eccentric phase (seconds)
+}
+
+# Bicep curl advanced metrics
+BICEP_CURL_METRICS = {
+    # Elbow position stability
+    "ELBOW_DRIFT_MAX": 0.03,       # Maximum acceptable elbow position drift (normalized)
+    
+    # Wrist stability and position
+    "WRIST_STABILITY": 0.02,       # Maximum wrist position variance (normalized)
+    
+    # Tempo metrics (seconds)
+    "CONCENTRIC_TIME_OPTIMAL": 1.0, # Optimal time for concentric phase (seconds)
+    "ECCENTRIC_TIME_OPTIMAL": 2.0,  # Optimal time for eccentric phase (seconds)
+    
+    # Path straightness
+    "PATH_DEVIATION_MAX": 0.04,     # Maximum deviation from ideal curl path (normalized)
+    
+    # Angular velocity limits
+    "MAX_ANGULAR_VELOCITY": 300.0   # Maximum angular velocity (degrees/second)
+}
+
+# Enhanced feedback messages for metrics
+ADVANCED_FEEDBACK = {
+    # Squat advanced feedback
+    "SQUAT_KNEE_VALGUS": "Knees are collapsing inward. Keep them tracking in line with your toes.",
+    "SQUAT_ASYMMETRY": "Uneven weight distribution. Try to keep weight balanced between both legs.",
+    "SQUAT_DESCENT_FAST": "Control your descent - slower is better for muscle engagement.",
+    "SQUAT_HIP_KNEE_RATIO": "Lead the movement from your hips, not just your knees.",
+    
+    # Deadlift advanced feedback
+    "DEADLIFT_LUMBAR_FLEXION": "Maintain a neutral spine throughout the lift to reduce injury risk.",
+    "DEADLIFT_BAR_PATH": "Keep the bar close to your body throughout the lift.",
+    "DEADLIFT_TIMING": "Hips and shoulders should rise at the same rate - don't lift with your back.",
+    "DEADLIFT_TEMPO_FAST": "Control the weight more - especially on the way down.",
+    
+    # Bicep curl advanced feedback
+    "BICEP_ELBOW_DRIFT": "Keep your elbow fixed in position throughout the curl.",
+    "BICEP_WRIST_STABILITY": "Maintain a neutral wrist position - don't flex your wrists.",
+    "BICEP_MOMENTUM": "Slow down to eliminate momentum - focus on muscle control.",
+    "BICEP_TEMPO_IMBALANCE": "Spend more time lowering the weight than raising it for optimal strength gains."
+}
