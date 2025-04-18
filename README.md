@@ -1,143 +1,169 @@
 # ReGenix-Rehabilitation-App
 
-ReGenix is an AI-powered exercise tracking application that uses **MediaPipe Pose Detection** to analyze workouts in real time.  
-It provides **live feedback, rep counting, and posture analysis** while displaying a **skeletal overlay on the video feed**.  
-Below the video, **rep counter, stage status, and posture feedback** are shown in **separate boxes** for a clean and intuitive user experience.  
+ReGenix is an AI‑powered exercise tracking application using MediaPipe Pose Detection and FastAPI to deliver real‑time form analysis, rep counting, and detailed session reports.  
 
 -------------------------------------------------------------------------------
 
-## 🚀 Features  
+## 🚀 Key Features
 
-📹 **Real-time pose detection** using MediaPipe  
-🔢 **Automated rep counting** for various exercises  
-🏋️ **Posture feedback** to ensure correct form  
-📊 **Live statistics display** below the video  
-🌐 **Simple HTML frontend & FastAPI backend integration**  
-🛠 **Modular design** for adding new exercises  
+- Real‑time skeleton overlay with color‑coded joint feedback  
+- Automated rep counting and stage tracking for 6 exercises  
+- Research‑backed posture metrics and advanced form analysis  
+- Session management: start, record, end, and detailed reports  
+- Per‑rep scoring, common issues summary, and improvement suggestions  
+- Simple HTML/CSS/JS frontend; modular Python backend  
 
 -------------------------------------------------------------------------------
 
-## 📁 Folder Structure  
+## 📁 Repository Structure
 
 ```
-project/
-├── backend/               # Backend API (FastAPI)
-│   ├── bicep_curls.py     # Bicep curls logic
-│   ├── deadlifts.py       # Deadlifts logic
-│   ├── lunges.py          # Lunges logic
-│   ├── pushups.py         # Pushups logic
-│   ├── situps.py          # Situps logic
-│   ├── squats.py          # Squats logic
-│   ├── state.py           # Stores real-time exercise state
-│   └── main.py            # API entry point (FastAPI)
+ReGenix-Rehabilitation-App/
+├── backend/                  
+│   ├── bicep_curls.py        # Bicep curl analysis
+│   ├── deadlifts.py          # Deadlift analysis
+│   ├── lunges.py             # Lunge analysis
+│   ├── pushups.py            # Push‑up analysis
+│   ├── situps.py             # Sit‑up analysis
+│   ├── squats.py             # Squat analysis
+│   ├── feedback_config.py    # Thresholds & messages
+│   ├── score_config.py       # Scoring logic
+│   ├── reference_poses.py    # Reference skeleton generator
+│   ├── session_state.py      # In‑memory session tracking
+│   ├── routers/              
+│   │   ├── session_router.py # Session API & reports
+│   │   └── reference_router.py # Reference pose API
+│   ├── state.py              # Exercise state wrapper
+│   ├── main.py               # FastAPI entry point
+│   └── run_api.py            # Uvicorn launcher
 │
-├── frontend/              # Simple HTML/CSS/JS Frontend
-│   ├── assets/            # Images, videos and other assets
-│   ├── css/               # CSS styling files
-│   ├── js/                # JavaScript modules
-│   └── index.html         # Main HTML entry point
+├── frontend/                 
+│   ├── index.html            # Exercise selection
+│   ├── exercise.html         # Live exercise page
+│   ├── user-details.html     # Collect user info
+│   ├── public/               
+│   │   └── ...               
+│   ├── css/styles.css        # Styles
+│   └── js/                   
+│       ├── main.js           # Navigation & prompts
+│       ├── exercise.js       # Pose capture & overlay
+│       └── user-details.js   # User form logic
 │
-└── README.md              # Project documentation
+└── README.md                 # Project documentation
 ```
 
 -------------------------------------------------------------------------------
 
-## 🛠 Installation  
+## 🛠️ Installation
 
-### **1️⃣ Clone the Repository**  
-```bash
-git clone https://github.com/yourusername/ReGenix.git
-cd ReGenix
-```
+### Backend
 
-### **2️⃣ Setup Virtual Environment (Recommended)**
-It is recommended to use a **virtual environment** for the backend to avoid dependency conflicts.
-
-#### **For Windows:**
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-#### **For macOS/Linux:**
 ```bash
 cd backend
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
--------------------------------------------------------------------------------
+### Frontend
 
-## 🚀 Usage  
+Serve `frontend/` via any static server:
 
-### **Run Backend Server (FastAPI)**
-```bash
-cd backend
-source venv/bin/activate  # Activate the virtual environment (Linux/macOS)
-# On Windows, use: venv\Scripts\activate
-
-uvicorn main:app --reload
-```
-- The backend will start at **http://localhost:8000**.
-
-### **Run Frontend**
-Simply open the `frontend/index.html` file in your browser.
-
-For the best experience, you can use a simple HTTP server:
 ```bash
 cd frontend
-# If you have Python installed
-python -m http.server
+python -m http.server 8080
 ```
-Then open your browser to **http://localhost:8000**.
 
 -------------------------------------------------------------------------------
 
-## 🎯 How It Works  
+## ▶️ Running the System
 
-1️⃣ **Frontend captures video feed** and extracts **pose landmarks** using MediaPipe.  
-2️⃣ Only **landmark data** (not full video frames) is sent to the backend.  
-3️⃣ The backend processes **rep counting, posture analysis, and stage tracking**.  
-4️⃣ The **skeletal overlay is displayed on the video**, while rep stats are shown **below the video**.  
+1. **Start the API**  
+   ```bash
+   cd backend
+   python run_api.py
+   ```
+   - FastAPI docs → http://localhost:8000/docs  
 
--------------------------------------------------------------------------------
-
-## 📌 Supported Exercises  
-
-✅ **Bicep Curls**  
-✅ **Deadlifts**  
-✅ **Lunges**  
-✅ **Pushups**  
-✅ **Situps**  
-✅ **Squats**  
+2. **Open Frontend**  
+   Navigate to http://localhost:8080/index.html  
 
 -------------------------------------------------------------------------------
 
-## 🤖 Tech Stack  
+## 🖥️ Frontend Flow
 
-- **Frontend:** HTML, CSS, JavaScript, MediaPipe Pose API  
-- **Backend:** FastAPI, Python, OpenCV, NumPy  
-
--------------------------------------------------------------------------------
-
-## 📜 License  
-
-This project is **open-source** and available under the **MIT License**.
+- On first visit, prompt for user details (optional).  
+- Select exercise; opens `exercise.html?exercise=<name>`.  
+- Live video feed processed via MediaPipe → landmarks sent to backend.  
+- Skeleton overlay drawn green; problematic segments/joints flash red.  
+- UI boxes show reps, stage, feedback, set & target, lighting, score color.
 
 -------------------------------------------------------------------------------
 
-## 💡 Future Improvements  
+## 🔗 Backend Endpoints
 
-📌 **Add new exercises dynamically**  
-🎨 **Improve UI/UX** with advanced overlays  
-📊 **More detailed analytics** for form improvement  
+### Landmarks Processing
+
+```
+POST /landmarks/{exercise_name}?session_id=<id>
+Body: { "landmarks": [ {x,y,z}, … ] }
+```
+- Returns per‑frame analysis: repCount, stage, feedback, rep_score, advanced_metrics, affected_joints/segments.
+
+### State Reset
+
+```
+POST /reset/{exercise_name}
+```
+- Resets rep counter & form state for next set.
+
+### Session Management
+
+```
+POST   /session/start         → { session_id, start_time }
+POST   /session/{id}/record   → record rep data
+POST   /session/{id}/end      → end session
+GET    /session/{id}/summary  → basic summary
+GET    /session/{id}/report   → comprehensive report
+GET    /session/{id}/exercises→ per‑exercise summary
+GET    /session/{id}/reps     → full rep log + score stats
+GET    /session/{id}/exercise/{name}/report
+GET    /session/{id}/exercise/{name}/reps
+```
 
 -------------------------------------------------------------------------------
 
-## 👨‍💻 Author  
+## 📊 Session Report Highlights
 
-Developed by **Debarun Joardar** 🚀  
-For inquiries, contact **djoardar2001@gmail.com**
+- **Overall summary**: total reps, avg. score, duration, performance rating.  
+- **Exercise breakdown**: reps, avg. score, top issues.  
+- **Rep‑by‑rep**: individual score, timestamp, feedback flags, per‑rep metrics.  
+- **Form analysis**: common issues chart, metrics trends.  
+- **Improvement suggestions**: general & exercise‑specific tips.
+
+-------------------------------------------------------------------------------
+
+## 🔬 Research‑Backed Metrics
+
+Each exercise uses core and advanced metrics:
+
+- **Squats**: knee angle, torso angle, valgus, asymmetry, descent/ascent timing.  
+- **Deadlifts**: back & hip angles, lumbar flexion, bar path deviation, tempo.  
+- **Push‑ups**: elbow angle, trunk alignment, hip sag/peak detection.  
+- **Lunges**: knee projection, depth, torso lean, balance proxies.  
+- **Sit‑ups**: hip flexion, neck angle, velocity/jerk estimates.  
+- **Bicep Curls**: ROM, shoulder drift, path straightness, angular velocity.
+
+-------------------------------------------------------------------------------
+
+## 🙌 Contribution
+
+- Fork the repo & submit PRs  
+- Add new exercises via modular pattern  
+- Improve UI/UX or metrics  
+
+-------------------------------------------------------------------------------
+
+## 📜 License
+
+MIT © Debarun Joardar (djoardar2001@gmail.com)
