@@ -143,27 +143,51 @@ document.addEventListener("DOMContentLoaded", function() {
       })
         .then(res => res.json())
         .then(data => {
-          // Store feedback for visualization
-          latestFeedback = data;
-          
           // Update UI with exercise data
           repCountElement.textContent = data.counter || data.repCount || 0;
           stageStatusElement.textContent = data.repState || data.stage || "N/A";
           feedbackElement.textContent = data.feedback || "N/A";
+          
+          // Store the affected joints/segments for visualization if available
+          if (data.affected_joints || data.affected_segments) {
+            latestFeedback = {
+              affected_joints: data.affected_joints || [],
+              affected_segments: data.affected_segments || []
+            };
+          }
           
           // Update current reps count
           currentReps = data.counter || data.repCount || 0;
           targetRepsElement.textContent = `${currentReps} / ${repsGoal}`;
           
           // Check if set is complete
-          if (currentReps >= repsGoal) {
+          if (currentReps >= repsGoal && !setCompleteDialogShown) {
+            setCompleteDialogShown = true; // Flag to prevent multiple alerts
+            
             if (currentSet < totalSets) {
-              currentSet++;
-              setCounterElement.textContent = `${currentSet} / ${totalSets}`;
-              alert(`Set ${currentSet - 1} completed! Starting set ${currentSet}`);
+              // Show completion dialog for current set
+              const message = `Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`;
+              
+              // Use setTimeout to prevent immediate execution
+              setTimeout(() => {
+                alert(message);
+                
+                // Only after the user clicks OK, update the set counter and reset reps
+                currentSet++;
+                setCounterElement.textContent = `${currentSet} / ${totalSets}`;
+                
+                // Critical fix: Reset the rep count in the backend
+                resetExerciseState();
+                
+                // Reset the dialog shown flag after processing
+                setCompleteDialogShown = false;
+              }, 100);
             } else {
-              alert("Workout completed! Great job!");
-              window.location.href = "index.html";
+              // Final set completed
+              setTimeout(() => {
+                alert("Workout completed! Great job!");
+                window.location.href = "index.html";
+              }, 100);
             }
           }
         })
@@ -227,3 +251,19 @@ function getJointIndex(jointName) {
 
 // Initialize variable to store latest feedback
 let latestFeedback = null;
+
+// Add this global variable to track dialog state
+let setCompleteDialogShown = false;
+
+// Add this function to reset exercise state in the backend
+function resetExerciseState() {
+  fetch(`http://localhost:8000/reset/${exerciseName}`, {
+    method: 'POST',
+  }).catch(err => {
+    console.error('Error resetting exercise state:', err);
+  });
+  
+  // Also reset local counter
+  currentReps = 0;
+  targetRepsElement.textContent = `${currentReps} / ${repsGoal}`;
+}
