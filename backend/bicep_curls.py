@@ -1,6 +1,6 @@
 import numpy as np
 from state import exercise_state
-from feedback_config import BICEP_CURL_CONFIG
+from feedback_config import BICEP_CURL_CONFIG, FEEDBACK_TO_JOINTS, JOINT_INDEX_MAP
 
 def calculate_angle(a, b, c):
     """
@@ -146,6 +146,36 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
     rep_score = 100 if "GOOD_CURL" in feedback_flags else 70
     score_label = "Perfect!" if rep_score == 100 else "Good"
 
+    # When creating the response, add affected joints information
+    affected_joints = []
+    affected_segments = []
+    
+    # Identify affected joints based on feedback flags
+    for flag in feedback_flags:
+        if flag in FEEDBACK_TO_JOINTS:
+            # Get joint groups affected by this feedback
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                # Add all joints in these groups to the affected list
+                if group in ["elbows"]:
+                    affected_joints.extend([13, 14])  # Left and right elbow indices
+                elif group in ["shoulders"]:
+                    affected_joints.extend([11, 12])  # Left and right shoulder indices
+                # Add other mappings as needed
+    
+    # Add unique affected joints
+    affected_joints = list(set(affected_joints))
+    
+    # Add segments affected by these joints
+    if 11 in affected_joints or 13 in affected_joints:  # Left shoulder or elbow
+        affected_segments.append(["left_shoulder", "left_elbow"])
+    if 13 in affected_joints or 15 in affected_joints:  # Left elbow or wrist
+        affected_segments.append(["left_elbow", "left_wrist"])
+    if 12 in affected_joints or 14 in affected_joints:  # Right shoulder or elbow
+        affected_segments.append(["right_shoulder", "right_elbow"])
+    if 14 in affected_joints or 16 in affected_joints:  # Right elbow or wrist
+        affected_segments.append(["right_elbow", "right_wrist"])
+
     new_state = {
         "repCount": counter,
         "stage": stage,
@@ -156,7 +186,9 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
         "prev_shoulders": shoulder_positions,  # Store for next frame comparison
         "rep_score": rep_score,
         "score_label": score_label,
-        "progress": progress
+        "progress": progress,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["bicep_curls"] = new_state

@@ -78,41 +78,64 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Draw pose skeleton if landmarks detected
     if (results.poseLandmarks) {
-      drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
-      drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', lineWidth: 1 });
-      canvasCtx.restore();
-
-      // Check landmark visibility
-      const totalLandmarks = results.poseLandmarks.length;
-      const visibleCount = results.poseLandmarks.filter(lm => lm.visibility >= VISIBILITY_THRESHOLD).length;
+      // Draw connections first (bones)
+      drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { 
+        color: '#00FF00',  // Default green color
+        lineWidth: 2 
+      });
       
-      if (visibleCount / totalLandmarks < REQUIRED_VISIBLE_RATIO) {
-        feedbackElement.textContent = "Pose unstable: Not enough landmarks visible. Adjust your position.";
-        return;
-      }
-      
-      // Ensure controlled movement
-      if (prevLandmarks) {
-        const fastMovement = results.poseLandmarks.some((lm, index) => {
-          const prevLm = prevLandmarks[index];
-          if (!prevLm) return false;
-          const dx = lm.x - prevLm.x;
-          const dy = lm.y - prevLm.y;
-          const displacement = Math.sqrt(dx * dx + dy * dy);
-          return displacement > CONTROLLED_MOVEMENT_THRESHOLD;
-        });
-        
-        if (fastMovement) {
-          feedbackElement.textContent = "Movement too fast. Please move slowly and controlled.";
-          prevLandmarks = results.poseLandmarks;
-          return; // Skip sending data to backend
+      // Check if we have feedback with affected segments
+      if (latestFeedback && latestFeedback.affected_segments) {
+        // Draw problematic segments in red
+        for (const segment of latestFeedback.affected_segments) {
+          const startJoint = getJointIndex(segment[0]);
+          const endJoint = getJointIndex(segment[1]);
+          
+          if (startJoint !== -1 && endJoint !== -1) {
+            // Draw this specific connection in red
+            drawConnectors(
+              canvasCtx, 
+              results.poseLandmarks,
+              [[startJoint, endJoint]],  // Just this connection
+              { color: '#FF0000', lineWidth: 3 }  // Red and slightly thicker
+            );
+          }
         }
       }
       
-      // Update previous landmarks
-      prevLandmarks = [...results.poseLandmarks];
+      // Draw landmarks
+      drawLandmarks(canvasCtx, results.poseLandmarks, { 
+        color: '#FF0000',  // Default red for all points
+        lineWidth: 1,
+        fillColor: '#FFFFFF'  // White fill
+      });
+      
+      // Re-color affected joints if available
+      if (latestFeedback && latestFeedback.affected_joints) {
+        for (const jointIndex of latestFeedback.affected_joints) {
+          if (jointIndex < results.poseLandmarks.length) {
+            // Draw this joint as a larger red dot
+            const landmark = results.poseLandmarks[jointIndex];
+            canvasCtx.fillStyle = '#FF0000';  // Red
+            canvasCtx.strokeStyle = '#FFFFFF'; // White outline
+            canvasCtx.lineWidth = 2;
+            
+            canvasCtx.beginPath();
+            canvasCtx.arc(
+              landmark.x * canvasElement.width, 
+              landmark.y * canvasElement.height, 
+              8,  // Larger radius
+              0, 2 * Math.PI);
+            canvasCtx.fill();
+            canvasCtx.stroke();
+          }
+        }
+      }
+      
+      // Rest of your code for sending landmarks and processing feedback
+      // ...
 
-      // Send landmark data to backend
+      // Save the feedback for next frame's visualization
       fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,6 +143,9 @@ document.addEventListener("DOMContentLoaded", function() {
       })
         .then(res => res.json())
         .then(data => {
+          // Store feedback for visualization
+          latestFeedback = data;
+          
           // Update UI with exercise data
           repCountElement.textContent = data.counter || data.repCount || 0;
           stageStatusElement.textContent = data.repState || data.stage || "N/A";
@@ -177,3 +203,27 @@ document.addEventListener("DOMContentLoaded", function() {
       alert("Failed to start camera. Please check your camera permissions and reload.");
     });
 });
+
+// Helper function to convert joint names to MediaPipe indices
+function getJointIndex(jointName) {
+  const jointMap = {
+    "nose": 0,
+    "left_shoulder": 11,
+    "right_shoulder": 12,
+    "left_elbow": 13,
+    "right_elbow": 14,
+    "left_wrist": 15,
+    "right_wrist": 16,
+    "left_hip": 23,
+    "right_hip": 24, 
+    "left_knee": 25,
+    "right_knee": 26,
+    "left_ankle": 27,
+    "right_ankle": 28
+  };
+  
+  return jointMap[jointName] || -1;
+}
+
+// Initialize variable to store latest feedback
+let latestFeedback = null;

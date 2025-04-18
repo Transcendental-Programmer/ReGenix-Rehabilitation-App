@@ -140,3 +140,81 @@ BICEP_CURL_CONFIG = {
         "GOOD_CURL": "Good bicep curl form"
     }
 }
+
+# Add joint groups for color feedback
+JOINT_GROUPS = {
+    "knees": ["left_knee", "right_knee"],
+    "hips": ["left_hip", "right_hip"],
+    "back": ["mid_back"],
+    "shoulders": ["left_shoulder", "right_shoulder"],
+    "elbows": ["left_elbow", "right_elbow"],
+    "ankles": ["left_ankle", "right_ankle"]
+}
+
+# Map feedback flags to affected joint groups
+FEEDBACK_TO_JOINTS = {
+    # Squat feedback
+    "DEPTH_TOO_SHALLOW": ["knees", "hips"],
+    "KNEES_TOO_FORWARD": ["knees", "ankles"],
+    "BACK_TOO_BENT": ["back"],
+    
+    # Deadlift feedback
+    "NOT_DEEP_ENOUGH": ["hips"],
+    "TOO_DEEP": ["hips", "knees"],
+    "STAND_STRAIGHT": ["back"],
+    
+    # Pushup feedback
+    "TOO_SHALLOW": ["elbows"],
+    "TOO_DEEP": ["elbows", "shoulders"],
+    "HIPS_TOO_HIGH": ["hips", "back"],
+    "HIPS_TOO_LOW": ["hips", "back"],
+    
+    # Lunge feedback
+    "KNEE_TOO_FORWARD": ["knees"],
+    "NOT_DEEP_ENOUGH": ["knees"],
+    "TORSO_LEANING": ["back"],
+    
+    # Bicep curl feedback
+    "INCOMPLETE_CURL": ["elbows"],
+    "INCOMPLETE_EXTENSION": ["elbows"],
+    "USING_MOMENTUM": ["shoulders", "elbows"],
+    "SHOULDER_SWINGING": ["shoulders"]
+}
+
+# Connect joints to form segments
+BODY_SEGMENTS = [
+    # Torso segments
+    ["left_shoulder", "right_shoulder"],  # Chest
+    ["left_shoulder", "left_hip"],        # Left torso
+    ["right_shoulder", "right_hip"],      # Right torso
+    ["left_hip", "right_hip"],            # Hip line
+    
+    # Arm segments
+    ["left_shoulder", "left_elbow"],      # Left upper arm
+    ["left_elbow", "left_wrist"],         # Left lower arm
+    ["right_shoulder", "right_elbow"],    # Right upper arm
+    ["right_elbow", "right_wrist"],       # Right lower arm
+    
+    # Leg segments
+    ["left_hip", "left_knee"],            # Left thigh
+    ["left_knee", "left_ankle"],          # Left calf
+    ["right_hip", "right_knee"],          # Right thigh
+    ["right_knee", "right_ankle"],        # Right calf
+]
+
+# Map MediaPipe indices to joint names
+JOINT_INDEX_MAP = {
+    0: "nose",
+    11: "left_shoulder",
+    12: "right_shoulder",
+    13: "left_elbow",
+    14: "right_elbow",
+    15: "left_wrist",
+    16: "right_wrist",
+    23: "left_hip",
+    24: "right_hip", 
+    25: "left_knee",
+    26: "right_knee",
+    27: "left_ankle",
+    28: "right_ankle"
+}
