@@ -12,27 +12,25 @@ const generateToken = (id) => {
 // Register user
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, gender, age } = req.body;
-    
-    // Check if user exists
+    const { name, email, password, gender, age, height, weight } = req.body;
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
-    
-    // Create new user
+
     const user = await User.create({
       name,
       email,
       password,
       gender,
-      age
+      age,
+      height,
+      weight
     });
-    
-    // Generate token
+
     const token = generateToken(user._id);
-    
-    // Return user data (excluding password)
+
     res.status(201).json({
       success: true,
       token,
@@ -41,7 +39,9 @@ exports.register = async (req, res) => {
         name: user.name,
         email: user.email,
         gender: user.gender,
-        age: user.age
+        age: user.age,
+        height: user.height,
+        weight: user.weight
       }
     });
   } catch (error) {
@@ -49,6 +49,7 @@ exports.register = async (req, res) => {
     res.status(500).json({ error: 'Server error during registration' });
   }
 };
+
 
 // Login user
 exports.login = async (req, res) => {
@@ -74,7 +75,6 @@ exports.login = async (req, res) => {
     
     // Generate token
     const token = generateToken(user._id);
-    
     res.status(200).json({
       success: true,
       token,
@@ -83,9 +83,12 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         gender: user.gender,
-        age: user.age
+        age: user.age,
+        height: user.height,
+        weight: user.weight
       }
     });
+    
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
