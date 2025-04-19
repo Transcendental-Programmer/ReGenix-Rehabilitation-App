@@ -1,39 +1,49 @@
 // models/Session.js
 const mongoose = require('mongoose');
 
-const sessionSchema = new mongoose.Schema({
+const SessionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  exercise: {
+  exerciseType: {
     type: String,
-    enum: ['squat', 'dumbbell curl', 'lunges', 'push ups', 'deadlift', 'sit ups'],
-    required: true
+    required: true,
+    enum: ['squats', 'pushups', 'deadlifts', 'lunges', 'situps', 'bicep_curls']
   },
-  date: {
+  startTime: {
     type: Date,
     default: Date.now
   },
-  duration: {
-    type: Number,
-    required: true,
-    min: 1
+  endTime: {
+    type: Date
   },
-  accuracyScore: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 100
+  completed: {
+    type: Boolean,
+    default: false
   },
-  feedbackNotes: {
+  totalSets: {
+    type: Number,
+    default: 3
+  },
+  completedSets: {
+    type: Number,
+    default: 0
+  },
+  targetReps: {
+    type: Number,
+    default: 10
+  },
+  overallScore: {
+    type: Number
+  },
+  scoreLabel: {
     type: String,
-    trim: true
+    enum: ['Excellent', 'Good', 'Average', 'Needs Improvement']
   }
 }, {
   timestamps: true
 });
 
-const Session = mongoose.model('Session', sessionSchema);
-module.exports = Session;
+module.exports = mongoose.model('Session', SessionSchema);
