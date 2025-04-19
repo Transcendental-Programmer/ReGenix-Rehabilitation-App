@@ -1,12 +1,9 @@
-
-
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
-// Import from external libraries - with correct imports
+// Import from MediaPipe libraries
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { Camera } from "@mediapipe/camera_utils";
-// Import POSE_CONNECTIONS from the correct location
 import { POSE_CONNECTIONS } from "@mediapipe/pose";
 
 // Joint mapping for pose detection
@@ -46,218 +43,95 @@ const jointMap = {
   "right_foot_index": 32
 };
 
-// Helper Geometric Functions
-const midpoint = (p1: any, p2: any) => {
-  return {
-    x: (p1.x + p2.x) / 2,
-    y: (p1.y + p2.y) / 2,
-    z: (p1.z + p2.z) / 2
-  };
-};
+// Types for landmarks and feedback
+interface Landmark {
+  x: number;
+  y: number;
+  z: number;
+  visibility?: number;
+}
 
-const distance = (p1: any, p2: any) => {
-  return Math.sqrt(
-    Math.pow(p2.x - p1.x, 2) +
-    Math.pow(p2.y - p1.y, 2) +
-    Math.pow(p2.z - p1.z, 2)
-  );
-};
+interface FeedbackData {
+  affected_joints?: string[];
+  affected_segments?: [string, string][];
+  feedback_flags?: string[];
+  rep_score?: number;
+  score_label?: string;
+  advanced_metrics?: Record<string, number>;
+  counter?: number;
+  repCount?: number;
+  repState?: string;
+  stage?: string;
+  feedback?: string;
+}
 
-const calculateAngle = (a: any, b: any, c: any) => {
-  const ab = {
-    x: b.x - a.x,
-    y: b.y - a.y
-  };
-  const bc = {
-    x: c.x - b.x,
-    y: c.y - b.y
-  };
-  
-  const dotProduct = (ab.x * bc.x) + (ab.y * bc.y);
-  const abMagnitude = Math.sqrt(ab.x * ab.x + ab.y * ab.y);
-  const bcMagnitude = Math.sqrt(bc.x * bc.x + bc.y * bc.y);
-  
-  const angleRadians = Math.acos(dotProduct / (abMagnitude * bcMagnitude));
-  return angleRadians * (180 / Math.PI);
-};
-
-const perpendicularDistance = (lineStart: any, lineEnd: any, point: any) => {
-  const lineLength = distance(lineStart, lineEnd);
-  
-  const area = Math.abs(
-    0.5 * (
-      (lineStart.x * lineEnd.y - lineEnd.x * lineStart.y) +
-      (lineEnd.x * point.y - point.x * lineEnd.y) +
-      (point.x * lineStart.y - lineStart.x * point.y)
-    )
-  );
-  
-  return (2 * area) / lineLength;
-};
-
-// Exercise-Specific Functions
-const calculateKneeAlignment = (landmarks: any[]) => {
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-  const leftKnee = landmarks[25];
-  const rightKnee = landmarks[26];
-  
-  const hipDistance = Math.sqrt(
-    Math.pow(rightHip.x - leftHip.x, 2) + 
-    Math.pow(rightHip.y - leftHip.y, 2)
-  );
-  
-  const kneeDistance = Math.sqrt(
-    Math.pow(rightKnee.x - leftKnee.x, 2) + 
-    Math.pow(rightKnee.y - leftKnee.y, 2)
-  );
-  
-  return kneeDistance / hipDistance;
-};
-
-const checkBodyAlignment = (landmarks: any[]) => {
-  const shoulders = midpoint(landmarks[11], landmarks[12]);
-  const hips = midpoint(landmarks[23], landmarks[24]);
-  const ankles = midpoint(landmarks[27], landmarks[28]);
-  
-  // Calculate deviation from straight line
-  const deviation = perpendicularDistance(
-    shoulders, ankles, hips
-  );
-  
-  return deviation / distance(shoulders, ankles);
-};
-
-const calculateHipHinge = (currentLandmarks: any[], startingLandmarks: any[]) => {
-  const currentHipAngle = calculateAngle(
-    currentLandmarks[11], // shoulder
-    currentLandmarks[23], // hip
-    currentLandmarks[25]  // knee
-  );
-  
-  const currentKneeAngle = calculateAngle(
-    currentLandmarks[23], // hip
-    currentLandmarks[25], // knee
-    currentLandmarks[27]  // ankle
-  );
-  
-  const startingHipAngle = calculateAngle(
-    startingLandmarks[11],
-    startingLandmarks[23],
-    startingLandmarks[25]
-  );
-  
-  const startingKneeAngle = calculateAngle(
-    startingLandmarks[23],
-    startingLandmarks[25],
-    startingLandmarks[27]
-  );
-  
-  const hipAngleChange = Math.abs(currentHipAngle - startingHipAngle);
-  const kneeAngleChange = Math.abs(currentKneeAngle - startingKneeAngle);
-  
-  return hipAngleChange / kneeAngleChange;
-};
-
-const checkKneeAlignment = (landmarks: any[], activeLeg: string) => {
-  const kneeIdx = activeLeg === 'left' ? 25 : 26;
-  const ankleIdx = activeLeg === 'left' ? 27 : 28;
-  const toeIdx = activeLeg === 'left' ? 31 : 32;
-  
-  const knee = landmarks[kneeIdx];
-  const ankle = landmarks[ankleIdx];
-  const toe = landmarks[toeIdx];
-  
-  // Calculate if knee projects beyond toe
-  const kneeProjection = (knee.x - ankle.x) / (toe.x - ankle.x);
-  
-  return kneeProjection;
-};
-
-const checkNeckPosition = (landmarks: any[]) => {
-  const nose = landmarks[0];
-  const leftEar = landmarks[7];
-  const rightEar = landmarks[8];
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  
-  // Calculate midpoints
-  const earMidpoint = midpoint(leftEar, rightEar);
-  const shoulderMidpoint = midpoint(leftShoulder, rightShoulder);
-  
-  // Forward head position is when nose projects too far forward of ear-shoulder line
-  const earShoulderAngle = calculateAngle(earMidpoint, shoulderMidpoint, { x: shoulderMidpoint.x, y: 0 });
-  const noseProjection = perpendicularDistance(earMidpoint, shoulderMidpoint, nose);
-  
-  return { earShoulderAngle, noseProjection };
-};
-
-const checkElbowStability = (landmarks: any[]) => {
-  const leftShoulder = landmarks[11];
-  const rightShoulder = landmarks[12];
-  const leftElbow = landmarks[13];
-  const rightElbow = landmarks[14];
-  const leftHip = landmarks[23];
-  const rightHip = landmarks[24];
-  
-  // Calculate torso centerline
-  const shoulderMidpoint = midpoint(leftShoulder, rightShoulder);
-  const hipMidpoint = midpoint(leftHip, rightHip);
-  
-  // Find perpendicular distance from elbows to centerline
-  const leftElbowDeviation = perpendicularDistance(shoulderMidpoint, hipMidpoint, leftElbow);
-  const rightElbowDeviation = perpendicularDistance(shoulderMidpoint, hipMidpoint, rightElbow);
-  
-  // Normalize by arm length
-  const leftArmLength = distance(leftShoulder, leftElbow);
-  const rightArmLength = distance(rightShoulder, rightElbow);
-  
-  return {
-    leftElbowStability: leftElbowDeviation / leftArmLength,
-    rightElbowStability: rightElbowDeviation / rightArmLength
-  };
-};
-
-export default function Exercise() {
+const Exercise: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const exerciseName = searchParams.get("exercise");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [repCount, setRepCount] = useState(0);
-  const [stage, setStage] = useState("N/A");
-  const [feedback, setFeedback] = useState("Waiting...");
-  const [lighting, setLighting] = useState("Checking...");
-  const [currentSet, setCurrentSet] = useState(1);
-  const [latestFeedback, setLatestFeedback] = useState<{
-    affected_joints?: string[];
-    affected_segments?: [string, string][];
-    feedback_flags?: string[];
-    rep_score?: number;
-    score_label?: string;
-    advanced_metrics?: Record<string, number>;
-  } | null>(null);
+  const [repCount, setRepCount] = useState<number>(0);
+  const [stage, setStage] = useState<string>("N/A");
+  const [feedback, setFeedback] = useState<string>("Waiting for camera...");
+  const [lighting, setLighting] = useState<string>("Checking...");
+  const [currentSet, setCurrentSet] = useState<number>(1);
+  const [latestFeedback, setLatestFeedback] = useState<FeedbackData | null>(null);
+  const [cameraReady, setCameraReady] = useState<boolean>(false);
 
-  // State for visibility check
-  const [visibilityStatus, setVisibilityStatus] = useState("Checking...");
-  // State for movement speed check
-  const [movementStatus, setMovementStatus] = useState("Checking...");
-  // Previous landmarks for movement speed check
-  const prevLandmarksRef = useRef<any[]>([]);
-
+  // State for visibility and movement tracking
+  const [visibilityStatus, setVisibilityStatus] = useState<string>("Checking...");
+  const [movementStatus, setMovementStatus] = useState<string>("Checking...");
+  
   // Exercise Parameters
-  const totalSets = 3;      // Default sets per exercise
-  const repsGoal = 10;      // Default reps per set
+  const totalSets = 3;
+  const repsGoal = 10;
   const BRIGHTNESS_THRESHOLD = 80;
   const VISIBILITY_THRESHOLD = 0.5;
   const REQUIRED_VISIBLE_RATIO = 0.75;
   const CONTROLLED_MOVEMENT_THRESHOLD = 0.03;
   
-  const setCompleteDialogShown = useRef(false);
+  // References for tracking
+  const prevLandmarksRef = useRef<Landmark[]>([]);
+  const setCompleteDialogShown = useRef<boolean>(false);
   const cameraRef = useRef<any>(null);
-  const startingLandmarksRef = useRef<any[]>([]);
+  const poseRef = useRef<any>(null);
+  const startingLandmarksRef = useRef<Landmark[]>([]);
 
+  // Helper functions
+  const getJointIndex = (jointName: string): number => {
+    return jointMap[jointName as keyof typeof jointMap] ?? -1;
+  };
+
+  const getAverageBrightness = (video: HTMLVideoElement): number => {
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = video.videoWidth || 1;
+    tempCanvas.height = video.videoHeight || 1;
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) return 0;
+    
+    tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    const { data } = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    let totalBrightness = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      totalBrightness += brightness;
+    }
+    return totalBrightness / (data.length / 4);
+  };
+
+  const resetExerciseState = async (): Promise<void> => {
+    try {
+      await fetch(`http://localhost:8000/reset/${exerciseName}`, { method: "POST" });
+      setRepCount(0);
+      startingLandmarksRef.current = [];
+    } catch (err) {
+      console.error("Reset error:", err);
+    }
+  };
+
+  // Setup MediaPipe Pose
   useEffect(() => {
     if (!exerciseName) {
       alert("No exercise specified!");
@@ -280,234 +154,293 @@ export default function Exercise() {
       return;
     }
 
-    const getJointIndex = (jointName: string) => jointMap[jointName as keyof typeof jointMap] ?? -1;
+    // Update page title
+    document.title = `ReGenix - ${exerciseName.replace("_", " ").toUpperCase()}`;
 
-    const getAverageBrightness = (video: HTMLVideoElement) => {
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      const tempCtx = tempCanvas.getContext("2d");
-      if (!tempCtx) return 0;
-      
-      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-      const { data } = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      let totalBrightness = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const brightness = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-        totalBrightness += brightness;
-      }
-      return totalBrightness / (data.length / 4);
-    };
-
-    const resetExerciseState = async () => {
+    // Initialize MediaPipe Pose
+    const setupPose = async () => {
       try {
-        await fetch(`http://localhost:8000/reset/${exerciseName}`, { method: "POST" });
-        setRepCount(0);
-        startingLandmarksRef.current = [];
-      } catch (err) {
-        console.error("Reset error:", err);
-      }
-    };
+        // Wait for the Pose class to be available
+        if (typeof window.Pose !== 'function') {
+          console.log("Waiting for MediaPipe Pose to load...");
+          setFeedback("Loading pose detection...");
+          setTimeout(setupPose, 500);
+          return;
+        }
 
-    // Import Pose from @mediapipe/pose
-    if (!window.Pose) {
-      console.error("Pose detection is not available. Make sure to include MediaPipe Pose library.");
-      setFeedback("Pose detection not available");
-      return;
-    }
-
-    const pose = new window.Pose({
-      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-    });
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6,
-    });
-
-    pose.onResults(async (results: any) => {
-      ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-      if (results.poseLandmarks) {
-        // Check visibility
-        const visibleLandmarks = results.poseLandmarks.filter(
-          (landmark: any) => landmark.visibility > VISIBILITY_THRESHOLD
-        );
+        console.log("Creating Pose instance");
+        setFeedback("Initializing pose detection...");
         
-        const visibilityRatio = visibleLandmarks.length / results.poseLandmarks.length;
-        setVisibilityStatus(
-          visibilityRatio >= REQUIRED_VISIBLE_RATIO 
-            ? "Good" 
-            : "Poor - Please ensure your full body is visible"
-        );
-        
-        // Check movement speed
-        if (prevLandmarksRef.current.length > 0) {
-          let totalMovement = 0;
-          for (let i = 0; i < results.poseLandmarks.length; i++) {
-            const curr = results.poseLandmarks[i];
-            const prev = prevLandmarksRef.current[i];
-            if (curr && prev) {
-              totalMovement += Math.sqrt(
-                Math.pow(curr.x - prev.x, 2) + 
-                Math.pow(curr.y - prev.y, 2)
+        const pose = new window.Pose({
+          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+        });
+
+        pose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+        });
+
+        pose.onResults((results: any) => {
+          // Ensure canvas context is still valid
+          const currentCtx = canvas.getContext("2d");
+          if (!currentCtx) return;
+
+          currentCtx.save();
+          currentCtx.clearRect(0, 0, canvas.width, canvas.height);
+          currentCtx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+          if (results.poseLandmarks) {
+            // Check visibility
+            const visibleLandmarks = results.poseLandmarks.filter(
+              (landmark: Landmark) => landmark.visibility && landmark.visibility > VISIBILITY_THRESHOLD
+            );
+            
+            const visibilityRatio = visibleLandmarks.length / results.poseLandmarks.length;
+            setVisibilityStatus(
+              visibilityRatio >= REQUIRED_VISIBLE_RATIO 
+                ? "Good" 
+                : "Poor - Please ensure your full body is visible"
+            );
+            
+            // Check movement speed
+            if (prevLandmarksRef.current.length > 0) {
+              let totalMovement = 0;
+              for (let i = 0; i < results.poseLandmarks.length; i++) {
+                const curr = results.poseLandmarks[i];
+                const prev = prevLandmarksRef.current[i];
+                if (curr && prev) {
+                  totalMovement += Math.sqrt(
+                    Math.pow(curr.x - prev.x, 2) + 
+                    Math.pow(curr.y - prev.y, 2)
+                  );
+                }
+              }
+              const avgMovement = totalMovement / results.poseLandmarks.length;
+              
+              setMovementStatus(
+                avgMovement <= CONTROLLED_MOVEMENT_THRESHOLD 
+                  ? "Good" 
+                  : "Too Fast - Please move more slowly for accurate tracking"
               );
-            }
-          }
-          const avgMovement = totalMovement / results.poseLandmarks.length;
-          
-          setMovementStatus(
-            avgMovement <= CONTROLLED_MOVEMENT_THRESHOLD 
-              ? "Good" 
-              : "Too Fast - Please move more slowly for accurate tracking"
-          );
-          
-          // Skip processing if movement is too fast
-          if (avgMovement > CONTROLLED_MOVEMENT_THRESHOLD) {
-            prevLandmarksRef.current = [...results.poseLandmarks];
-            ctx.restore();
-            return;
-          }
-        }
-        
-        // Store landmarks for next comparison
-        prevLandmarksRef.current = [...results.poseLandmarks];
-        
-        // Store starting landmarks for exercises that need it (like deadlifts)
-        if (startingLandmarksRef.current.length === 0) {
-          startingLandmarksRef.current = [...results.poseLandmarks];
-        }
-
-        // Draw connections first (bones)
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-          color: "#00FF00",
-          lineWidth: 2,
-        });
-
-        // Highlight problem segments if feedback available
-        if (latestFeedback?.affected_segments) {
-          latestFeedback.affected_segments.forEach(([start, end]) => {
-            const startJoint = getJointIndex(start);
-            const endJoint = getJointIndex(end);
-            if (startJoint !== -1 && endJoint !== -1) {
-              drawConnectors(ctx, results.poseLandmarks, [[startJoint, endJoint]], {
-                color: "#FF0000",
-                lineWidth: 3,
-              });
-            }
-          });
-        }
-
-        // Draw landmarks (joints)
-        drawLandmarks(ctx, results.poseLandmarks, {
-          color: "#FF0000",
-          lineWidth: 1,
-          fillColor: "#FFFFFF",
-        });
-
-        // Highlight problem joints if feedback available
-        if (latestFeedback?.affected_joints) {
-          latestFeedback.affected_joints.forEach((jointName) => {
-            const jointIndex = getJointIndex(jointName);
-            if (jointIndex !== -1) {
-              const landmark = results.poseLandmarks[jointIndex];
-              if (landmark) {
-                ctx.fillStyle = "#FF0000";
-                ctx.strokeStyle = "#FFFFFF";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
+              
+              // Skip processing if movement is too fast
+              if (avgMovement > CONTROLLED_MOVEMENT_THRESHOLD) {
+                prevLandmarksRef.current = [...results.poseLandmarks];
+                currentCtx.restore();
+                return;
               }
             }
-          });
-        }
-
-        // Only proceed if lighting, visibility, and movement are acceptable
-        if (visibilityRatio >= REQUIRED_VISIBLE_RATIO) {
-          try {
-            const res = await fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ landmarks: results.poseLandmarks }),
-            });
-
-            const data = await res.json();
-            const currentReps = data.counter ?? data.repCount ?? 0;
-
-            setRepCount(currentReps);
-            setStage(data.repState ?? data.stage ?? "N/A");
-            setFeedback(data.feedback ?? "N/A");
-            setLatestFeedback({
-              affected_joints: data.affected_joints ?? [],
-              affected_segments: data.affected_segments ?? [],
-              feedback_flags: data.feedback_flags ?? [],
-              rep_score: data.rep_score ?? 0,
-              score_label: data.score_label ?? "",
-              advanced_metrics: data.advanced_metrics ?? {}
-            });
-
-            if (currentReps >= repsGoal && !setCompleteDialogShown.current) {
-              setCompleteDialogShown.current = true;
-
-              setTimeout(() => {
-                if (currentSet < totalSets) {
-                  alert(`Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`);
-                  setCurrentSet((prev) => prev + 1);
-                  resetExerciseState();
-                } else {
-                  alert("Workout completed! Great job!");
-                  navigate("/");
-                }
-                setCompleteDialogShown.current = false;
-              }, 100);
+            
+            // Store landmarks for next comparison
+            prevLandmarksRef.current = [...results.poseLandmarks];
+            
+            // Store starting landmarks for exercises that need it (like deadlifts)
+            if (startingLandmarksRef.current.length === 0) {
+              startingLandmarksRef.current = [...results.poseLandmarks];
             }
-          } catch (err) {
-            console.error("Backend error:", err);
-            setFeedback("Connection error. Check backend server.");
+
+            // Draw connections first (bones)
+            drawConnectors(currentCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+              color: "#00FF00",  // Default green color
+              lineWidth: 2 
+            });
+
+            // Highlight problem segments if feedback available
+            if (latestFeedback?.affected_segments) {
+              latestFeedback.affected_segments.forEach(([start, end]) => {
+                const startJoint = getJointIndex(start);
+                const endJoint = getJointIndex(end);
+                if (startJoint !== -1 && endJoint !== -1) {
+                  drawConnectors(currentCtx, results.poseLandmarks, [[startJoint, endJoint]], {
+                    color: "#FF0000",  // Red for problem areas
+                    lineWidth: 3,
+                  });
+                }
+              });
+            }
+
+            // Draw landmarks (joints)
+            drawLandmarks(currentCtx, results.poseLandmarks, {
+              color: "#FF0000",  // Default red color
+              lineWidth: 1,
+              fillColor: "#FFFFFF"  // White fill
+            });
+
+            // Highlight problem joints if feedback available
+            if (latestFeedback?.affected_joints) {
+              latestFeedback.affected_joints.forEach((jointName) => {
+                const jointIndex = getJointIndex(jointName);
+                if (jointIndex !== -1) {
+                  const landmark = results.poseLandmarks[jointIndex];
+                  if (landmark) {
+                    currentCtx.fillStyle = "#FF0000";  // Red
+                    currentCtx.strokeStyle = "#FFFFFF";  // White outline
+                    currentCtx.lineWidth = 2;
+                    currentCtx.beginPath();
+                    currentCtx.arc(
+                      landmark.x * canvas.width, 
+                      landmark.y * canvas.height, 
+                      8,  // Larger radius for emphasis
+                      0, 2 * Math.PI
+                    );
+                    currentCtx.fill();
+                    currentCtx.stroke();
+                  }
+                }
+              });
+            }
+
+            // Only send landmarks to backend if visibility is good
+            if (visibilityRatio >= REQUIRED_VISIBLE_RATIO) {
+              fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ landmarks: results.poseLandmarks }),
+              })
+                .then(res => res.json())
+                .then((data: FeedbackData) => {
+                  const currentReps = data.counter ?? data.repCount ?? 0;
+                  
+                  setRepCount(currentReps);
+                  setStage(data.repState ?? data.stage ?? "N/A");
+                  setFeedback(data.feedback ?? "N/A");
+                  setLatestFeedback({
+                    affected_joints: data.affected_joints ?? [],
+                    affected_segments: data.affected_segments ?? [],
+                    feedback_flags: data.feedback_flags ?? [],
+                    rep_score: data.rep_score ?? 0,
+                    score_label: data.score_label ?? "",
+                    advanced_metrics: data.advanced_metrics ?? {}
+                  });
+
+                  // Check if set is complete
+                  if (currentReps >= repsGoal && !setCompleteDialogShown.current) {
+                    setCompleteDialogShown.current = true;
+
+                    setTimeout(() => {
+                      if (currentSet < totalSets) {
+                        alert(`Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`);
+                        setCurrentSet((prev) => prev + 1);
+                        resetExerciseState();
+                      } else {
+                        alert("Workout completed! Great job!");
+                        navigate("/");
+                      }
+                      setCompleteDialogShown.current = false;
+                    }, 100);
+                  }
+                })
+                .catch(err => {
+                  console.error("Backend error:", err);
+                  setFeedback("Connection error. Check backend server.");
+                });
+            }
           }
-        }
+
+          currentCtx.restore();
+        });
+
+        // Store pose reference
+        poseRef.current = pose;
+        console.log("Pose setup complete");
+        
+        // Now setup the camera
+        setupCamera();
+      } catch (error) {
+        console.error("Error setting up MediaPipe Pose:", error);
+        setFeedback("Failed to initialize pose detection. Please reload.");
       }
-
-      ctx.restore();
-    });
-
-    cameraRef.current = new Camera(video, {
-      onFrame: async () => {
-        if (video.videoWidth > 0) { // Make sure video is loaded
-          const brightness = getAverageBrightness(video);
-          if (brightness < BRIGHTNESS_THRESHOLD) {
-            setLighting("Too Dark");
-            setFeedback("Lighting is too dark. Please improve your lighting.");
-            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-          } else {
-            setLighting("Good");
-            await pose.send({ image: video });
-          }
-        }
-      },
-      width: 640,
-      height: 480,
-    });
-
-    cameraRef.current.start().catch((err: Error) => {
-      console.error("Camera error:", err);
-      alert("Failed to start camera. Check permissions.");
-    });
-
-    return () => {
-      if (cameraRef.current) cameraRef.current.stop();
     };
 
-  }, [exerciseName, currentSet, navigate]);
+    // Setup camera
+    const setupCamera = async () => {
+      try {
+        console.log("Setting up camera");
+        setFeedback("Initializing camera...");
+        
+        if (!video || !poseRef.current) {
+          console.error("Video element or Pose not available");
+          return;
+        }
+
+        // Request camera permissions explicitly
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 },
+            audio: false
+          });
+          // Stop the stream immediately to avoid conflicts with Camera utility
+          stream.getTracks().forEach(track => track.stop());
+        } catch (error) {
+          console.error("Camera permission denied:", error);
+          setFeedback("Camera permission denied. Please allow camera access and reload.");
+          return;
+        }
+
+        // Create Camera instance
+        const camera = new Camera(video, {
+          onFrame: async () => {
+            // Only proceed if camera is ready and video dimensions are available
+            if (video.videoWidth && video.videoHeight) {
+              setCameraReady(true);
+              
+              const brightness = getAverageBrightness(video);
+              if (brightness < BRIGHTNESS_THRESHOLD) {
+                setLighting("Too Dark");
+                setFeedback("Lighting is too dark. Please improve your lighting.");
+                
+                const ctx = canvas.getContext("2d");
+                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+              } else {
+                setLighting("Good");
+                if (poseRef.current) {
+                  await poseRef.current.send({ image: video });
+                }
+              }
+            }
+          },
+          width: 640,
+          height: 480,
+        });
+
+        // Start camera with error handling
+        console.log("Starting camera");
+        camera.start()
+          .then(() => {
+            console.log("Camera started successfully");
+            setFeedback("Camera started. Please stand back to ensure your full body is visible.");
+            cameraRef.current = camera;
+          })
+          .catch((err: Error) => {
+            console.error("Error starting camera:", err);
+            setFeedback("Failed to start camera. Please check permissions and reload.");
+          });
+      } catch (error) {
+        console.error("Camera setup error:", error);
+        setFeedback("Camera setup failed. Please reload the page.");
+      }
+    };
+
+    // Start the setup process
+    setupPose();
+
+    // Cleanup function
+    return () => {
+      console.log("Cleaning up camera and pose");
+      if (cameraRef.current) {
+        try {
+          cameraRef.current.stop();
+        } catch (error) {
+          console.error("Error stopping camera:", error);
+        }
+      }
+    };
+  }, [exerciseName, currentSet, navigate, repsGoal, totalSets]);
 
   // Function to get exercise-specific metrics for display
-  const getExerciseMetrics = () => {
+  const getAdvancedMetrics = () => {
     if (!latestFeedback?.advanced_metrics) return null;
     
     const metrics = latestFeedback.advanced_metrics;
@@ -516,7 +449,7 @@ export default function Exercise() {
     ));
     
     return metricRows.length > 0 ? (
-      <div className="metrics-box">
+      <div className="stat-box metrics-box">
         <h3>Advanced Metrics</h3>
         {metricRows}
       </div>
@@ -524,39 +457,93 @@ export default function Exercise() {
   };
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <h2>{exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}</h2>
-      <video ref={videoRef} style={{ display: "none" }} playsInline></video>
-      <canvas ref={canvasRef} width={640} height={480} style={{ border: "1px solid black" }} />
+    <div className="exercise-page">
+      <header className="exercise-header">
+        <h1 id="exercise-title">
+          {exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}
+        </h1>
+        <button 
+          className="back-home" 
+          onClick={() => navigate("/")}
+        >
+          ← Back to Home
+        </button>
+      </header>
       
-      <div style={{ marginTop: "1rem", display: "flex", justifyContent: "space-around", flexWrap: "wrap" }}>
-        <div className="stats-box" style={{ margin: "10px", padding: "15px", border: "1px solid #ccc", borderRadius: "8px", minWidth: "200px" }}>
-          <h3>Exercise Stats</h3>
-          <p><strong>Lighting:</strong> {lighting}</p>
-          <p><strong>Visibility:</strong> {visibilityStatus}</p>
-          <p><strong>Movement:</strong> {movementStatus}</p>
-          <p><strong>Reps:</strong> {repCount} / {repsGoal}</p>
-          <p><strong>Set:</strong> {currentSet} / {totalSets}</p>
-          <p><strong>Stage:</strong> {stage}</p>
+      <div className="video-container">
+        {/* Video element with explicit attributes for camera access */}
+        <video 
+          ref={videoRef} 
+          style={{ display: "none" }} 
+          playsInline 
+          autoPlay 
+          muted
+        />
+        <canvas 
+          ref={canvasRef} 
+          width={640} 
+          height={480} 
+          className="output-canvas"
+        />
+        {!cameraReady && (
+          <div className="camera-loading">
+            <p>{feedback}</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="stats-container">
+        <div className="stat-box">
+          <h3>Rep Counter</h3>
+          <p id="rep-count">{repCount}</p>
         </div>
-        
-        <div className="feedback-box" style={{ margin: "10px", padding: "15px", border: "1px solid #ccc", borderRadius: "8px", minWidth: "200px" }}>
+        <div className="stat-box">
+          <h3>Stage</h3>
+          <p id="stage-status">{stage}</p>
+        </div>
+        <div className="stat-box">
           <h3>Feedback</h3>
-          <p>{feedback}</p>
-          {latestFeedback?.rep_score && (
-            <p><strong>Score:</strong> {latestFeedback.rep_score} - {latestFeedback.score_label}</p>
-          )}
+          <p id="feedback">{feedback}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Lighting</h3>
+          <p id="lighting-status">{lighting}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Visibility</h3>
+          <p id="visibility-status">{visibilityStatus}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Movement</h3>
+          <p id="movement-status">{movementStatus}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Set</h3>
+          <p id="set-counter">{currentSet} / {totalSets}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Target Reps</h3>
+          <p id="target-reps">{repCount} / {repsGoal}</p>
         </div>
         
-        {getExerciseMetrics()}
+        {latestFeedback?.rep_score && (
+          <div className="stat-box">
+            <h3>Form Score</h3>
+            <p id="form-score">{latestFeedback.rep_score.toFixed(1)} - {latestFeedback.score_label}</p>
+          </div>
+        )}
+        
+        {getAdvancedMetrics()}
       </div>
     </div>
   );
-}
+};
 
-// Extend the Window interface to include the Pose constructor
+// Add TypeScript interface for Window object to include MediaPipe's Pose
 declare global {
   interface Window {
     Pose: any;
   }
 }
+
+export default Exercise;
