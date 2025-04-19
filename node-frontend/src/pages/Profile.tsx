@@ -344,7 +344,7 @@
 // export default Profile;
 
 import React, { useState, useEffect } from 'react';
-import { Check, Edit2, UserCircle, Mail, Lock, Info } from 'lucide-react';
+import { Check, Edit2, UserCircle, Info } from 'lucide-react';
 import Card, { CardContent, CardHeader } from '../components/Card';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
@@ -354,13 +354,9 @@ interface UserProfile {
   name: string;
   email: string;
   profilePicture?: string;
-  age?: number;  // Added age field
-  height?: string;  // Added height field
-  weight?: string;  // Added weight field
-  injuryType?: string;
-  injuryDate?: string;
-  therapistName?: string;
-  therapistEmail?: string;
+  age?: number;
+  height?: string;
+  weight?: string;
 }
 
 const Profile: React.FC = () => {
@@ -379,13 +375,9 @@ const Profile: React.FC = () => {
         id: user.id,
         name: user.name || 'John Doe',
         email: user.email,
-        age: 35,  // Added mock age data
-        height: '175 cm',  // Added mock height data
-        weight: '70 kg',  // Added mock weight data
-        injuryType: 'Rotator Cuff Tear',
-        injuryDate: '2024-09-15',
-        therapistName: 'Dr. Sarah Johnson',
-        therapistEmail: 'sarah.johnson@rehab.medical'
+        age: 35,
+        height: '175 cm',
+        weight: '70 kg'
       });
     }
   }, [user]);
@@ -453,7 +445,7 @@ const Profile: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
           <p className="text-dark-300">
-            Manage your personal information and rehabilitation details
+            Manage your personal information
           </p>
         </div>
         <Button
@@ -482,7 +474,7 @@ const Profile: React.FC = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <h2 className="text-xl font-semibold">Personal Information</h2>
+              <h2 className="text-xl font-semibold">Profile</h2>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center mb-6">
@@ -500,26 +492,6 @@ const Profile: React.FC = () => {
                 <h3 className="text-xl font-medium">{profile.name}</h3>
                 <p className="text-dark-300">{profile.email}</p>
               </div>
-              
-              {/* Added user details section */}
-              <div className="mt-6">
-  <div className="grid grid-cols-3 gap-3">
-    <div>
-      <h3 className="text-sm font-medium text-dark-300 mb-1">Age</h3>
-      <p className="text-lg">{profile.age || 'Not specified'}</p>
-    </div>
-    
-    <div>
-      <h3 className="text-sm font-medium text-dark-300 mb-1">Height</h3>
-      <p className="text-lg">{profile.height || 'Not specified'}</p>
-    </div>
-    
-    <div>
-      <h3 className="text-sm font-medium text-dark-300 mb-1">Weight</h3>
-      <p className="text-lg">{profile.weight || 'Not specified'}</p>
-    </div>
-  </div>
-</div>
             </CardContent>
           </Card>
         </div>
@@ -527,7 +499,7 @@ const Profile: React.FC = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <h2 className="text-xl font-semibold">Rehabilitation Information</h2>
+              <h2 className="text-xl font-semibold">Personal Information</h2>
             </CardHeader>
             <CardContent>
               {isEditing ? (
@@ -564,7 +536,6 @@ const Profile: React.FC = () => {
                       />
                     </div>
                     
-                    {/* Added age, height and weight input fields */}
                     <div>
                       <label htmlFor="age" className="block text-sm font-medium text-dark-300 mb-1">
                         Age
@@ -608,62 +579,6 @@ const Profile: React.FC = () => {
                         placeholder="e.g., 70 kg"
                       />
                     </div>
-                    
-                    <div>
-                      <label htmlFor="injuryType" className="block text-sm font-medium text-dark-300 mb-1">
-                        Injury Type
-                      </label>
-                      <input
-                        id="injuryType"
-                        name="injuryType"
-                        type="text"
-                        value={formData.injuryType || ''}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="injuryDate" className="block text-sm font-medium text-dark-300 mb-1">
-                        Injury Date
-                      </label>
-                      <input
-                        id="injuryDate"
-                        name="injuryDate"
-                        type="date"
-                        value={formData.injuryDate || ''}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="therapistName" className="block text-sm font-medium text-dark-300 mb-1">
-                        Therapist Name
-                      </label>
-                      <input
-                        id="therapistName"
-                        name="therapistName"
-                        type="text"
-                        value={formData.therapistName || ''}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="therapistEmail" className="block text-sm font-medium text-dark-300 mb-1">
-                        Therapist Email
-                      </label>
-                      <input
-                        id="therapistEmail"
-                        name="therapistEmail"
-                        type="email"
-                        value={formData.therapistEmail || ''}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    </div>
                   </div>
                   
                   <div className="flex justify-end space-x-4 pt-4">
@@ -685,55 +600,33 @@ const Profile: React.FC = () => {
                 </form>
               ) : (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-4">
                     <div>
-                      <h3 className="text-sm font-medium text-dark-300 mb-1">Injury Type</h3>
-                      <p className="text-lg">{profile.injuryType || 'Not specified'}</p>
+                      <h3 className="text-sm font-medium text-dark-300 mb-1">Age</h3>
+                      <p className="text-lg">{profile.age || 'Not specified'}</p>
                     </div>
                     
                     <div>
-                      <h3 className="text-sm font-medium text-dark-300 mb-1">Injury Date</h3>
-                      <p className="text-lg">
-                        {profile.injuryDate 
-                          ? new Date(profile.injuryDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            }) 
-                          : 'Not specified'}
-                      </p>
+                      <h3 className="text-sm font-medium text-dark-300 mb-1">Height</h3>
+                      <p className="text-lg">{profile.height || 'Not specified'}</p>
                     </div>
                     
                     <div>
-                      <h3 className="text-sm font-medium text-dark-300 mb-1">Therapist Name</h3>
-                      <p className="text-lg">{profile.therapistName || 'Not assigned'}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-dark-300 mb-1">Therapist Email</h3>
-                      <p className="text-lg">
-                        {profile.therapistEmail ? (
-                          <a href={`mailto:${profile.therapistEmail}`} className="text-primary-400 hover:text-primary-300">
-                            {profile.therapistEmail}
-                          </a>
-                        ) : (
-                          'Not assigned'
-                        )}
-                      </p>
+                      <h3 className="text-sm font-medium text-dark-300 mb-1">Weight</h3>
+                      <p className="text-lg">{profile.weight || 'Not specified'}</p>
                     </div>
                   </div>
                   
                   <div className="bg-dark-700 p-4 rounded-lg mt-8 flex items-start">
                     <Info size={20} className="text-primary-400 mt-0.5 mr-3 flex-shrink-0" />
                     <p className="text-dark-200">
-                      This information helps customize your rehabilitation plan. Keep it updated for the best results.
+                      Keep your personal information updated for the best experience.
                     </p>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
-          
         </div>
       </div>
     </div>

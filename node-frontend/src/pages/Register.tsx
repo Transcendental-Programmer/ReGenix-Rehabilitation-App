@@ -364,7 +364,7 @@ const Register = () => {
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {/* Personal Information Section */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="name" className="block text-xs font-medium text-dark-200 mb-1">
                     Full Name
@@ -397,8 +397,8 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Demographics Section - 4 items in one row */}
-              <div className="grid grid-cols-4 gap-2">
+              {/* Demographics Section - 4 items in one row on larger screens, stacked on mobile */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <label htmlFor="gender" className="block text-xs font-medium text-dark-200 mb-1">
                     Gender<span className="text-error-400">*</span>
@@ -465,7 +465,7 @@ const Register = () => {
               </div>
 
               {/* Password Section */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="password" className="block text-xs font-medium text-dark-200 mb-1">
                     Password
