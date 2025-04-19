@@ -12,6 +12,7 @@ import Planner from './pages/Planner';
 import Record from './pages/Record';
 import Profile from './pages/Profile';
 import Report from './pages/Report';
+import Exercise from './pages/Exercise';
 
 const App: React.FC = () => {
   return (
@@ -30,6 +31,7 @@ const App: React.FC = () => {
               <Route path="/record" element={<Record />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/report" element={<Report />} />
+              <Route path="/exercise" element={<Exercise />} />
               
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />

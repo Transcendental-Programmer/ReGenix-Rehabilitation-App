@@ -200,6 +200,7 @@ const Profile: React.FC = () => {
                         value={formData.name || ''}
                         onChange={handleInputChange}
                         className="input"
+                        placeholder="Name"
                         required
                       />
                     </div>
@@ -231,6 +232,7 @@ const Profile: React.FC = () => {
                         value={formData.age || ''}
                         onChange={handleInputChange}
                         className="input"
+                        placeholder="Age"
                         onWheel={(e) => e.currentTarget.blur()}
                       />
                     </div>
