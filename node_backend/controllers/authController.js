@@ -108,3 +108,39 @@ exports.getProfile = async (req, res) => {
     res.status(500).json({ error: 'Server error while fetching profile' });
   }
 };
+
+
+// Edit user profile
+exports.editProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { name, age, height, weight } = req.body;
+
+    // Find user by ID and update the fields
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { name, age, height, weight },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        gender: updatedUser.gender,
+        age: updatedUser.age,
+        height: updatedUser.height,
+        weight: updatedUser.weight
+      }
+    });
+  } catch (error) {
+    console.error('Edit profile error:', error);
+    res.status(500).json({ error: 'Server error while editing profile' });
+  }
+};
