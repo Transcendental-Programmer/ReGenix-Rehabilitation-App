@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 // Import from MediaPipe libraries
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
@@ -444,96 +445,136 @@ const Exercise: React.FC = () => {
     
     const metrics = latestFeedback.advanced_metrics;
     const metricRows = Object.entries(metrics).map(([key, value]) => (
-      <p key={key}><strong>{key.replace(/_/g, " ")}:</strong> {value.toFixed(1)}</p>
+      <p key={key} className="text-dark-300 flex justify-between items-center">
+        <span className="capitalize font-medium">{key.replace(/_/g, " ")}:</span> 
+        <span className="text-right font-mono">{value.toFixed(1)}</span>
+      </p>
     ));
     
     return metricRows.length > 0 ? (
-      <div className="stat-box metrics-box">
-        <h3>Advanced Metrics</h3>
-        {metricRows}
+      <div className="bg-dark-800 rounded-lg border border-dark-700 p-3 shadow-md">
+        <h3 className="text-lg font-semibold text-primary-400 mb-2">Advanced Metrics</h3>
+        <div className="space-y-1">
+          {metricRows}
+        </div>
       </div>
     ) : null;
   };
 
   return (
-    <div className="exercise-page">
-      <header className="exercise-header">
-        <h1 id="exercise-title">
-          {exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}
-        </h1>
-        <button 
-          className="back-home" 
-          onClick={() => navigate("/")}
-        >
-          ← Back to Home
-        </button>
+    <div className="bg-dark-950 min-h-screen text-white">
+      <header className="bg-dark-900 border-b border-dark-800 py-3 px-6 sticky top-0 z-10">
+        <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+          <h1 className="text-2xl font-bold text-center md:text-left">
+            <span className="bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
+              {exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}
+            </span>
+          </h1>
+          <button 
+            className="flex items-center gap-2 px-3 py-1 rounded-md bg-dark-800 hover:bg-dark-700 transition-colors duration-200 text-dark-200"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Home</span>
+          </button>
+        </div>
       </header>
       
-      <div className="video-container">
-        {/* Video element with explicit attributes for camera access */}
-        <video 
-          ref={videoRef} 
-          style={{ display: "none" }} 
-          playsInline 
-          autoPlay 
-          muted
-        />
-        <canvas 
-          ref={canvasRef} 
-          width={640} 
-          height={480} 
-          className="output-canvas"
-        />
-        {!cameraReady && (
-          <div className="camera-loading">
-            <p>{feedback}</p>
+      <main className="container mx-auto px-4 py-3">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Left side - Video */}
+          <div className="lg:w-2/3">
+            <div className="relative bg-dark-800 rounded-lg border border-dark-700 overflow-hidden shadow-lg">
+              <video 
+                ref={videoRef} 
+                className="hidden" 
+                playsInline 
+                autoPlay 
+                muted
+              />
+              <canvas 
+                ref={canvasRef} 
+                width={640} 
+                height={480} 
+                className="w-full object-cover"
+                style={{ aspectRatio: "4/3" }}
+              />
+              {!cameraReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-dark-900/80 backdrop-blur-sm">
+                  <div className="text-center px-6 py-4 rounded-lg bg-dark-800/90 max-w-md">
+                    <div className="animate-pulse mb-3 w-8 h-8 mx-auto rounded-full bg-primary-700/50"></div>
+                    <p className="text-lg text-dark-200">{feedback}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-      
-      <div className="stats-container">
-        <div className="stat-box">
-          <h3>Rep Counter</h3>
-          <p id="rep-count">{repCount}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Stage</h3>
-          <p id="stage-status">{stage}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Feedback</h3>
-          <p id="feedback">{feedback}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Lighting</h3>
-          <p id="lighting-status">{lighting}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Visibility</h3>
-          <p id="visibility-status">{visibilityStatus}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Movement</h3>
-          <p id="movement-status">{movementStatus}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Set</h3>
-          <p id="set-counter">{currentSet} / {totalSets}</p>
-        </div>
-        <div className="stat-box">
-          <h3>Target Reps</h3>
-          <p id="target-reps">{repCount} / {repsGoal}</p>
-        </div>
-        
-        {latestFeedback?.rep_score && (
-          <div className="stat-box">
-            <h3>Form Score</h3>
-            <p id="form-score">{latestFeedback.rep_score.toFixed(1)} - {latestFeedback.score_label}</p>
+          
+          {/* Right side - Stats and Controls */}
+          <div className="lg:w-1/3 space-y-3">
+            {/* Exercise Progress - Top stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-primary-900/20 rounded-lg border border-primary-700/30 p-3 flex flex-col items-center">
+                <div className="text-3xl font-bold text-primary-400">{repCount}</div>
+                <div className="text-xs text-dark-300">Rep Count</div>
+              </div>
+              <div className="bg-secondary-900/20 rounded-lg border border-secondary-700/30 p-3 flex flex-col items-center">
+                <div className="text-lg font-bold text-secondary-400">{stage}</div>
+                <div className="text-xs text-dark-300">Current Stage</div>
+              </div>
+              <div className="bg-accent-900/20 rounded-lg border border-accent-700/30 p-3 flex flex-col items-center col-span-2">
+                <div className="text-lg font-bold text-accent-400">Set {currentSet} / {totalSets}</div>
+                <div className="text-xs text-dark-300 text-center">{repCount} of {repsGoal} reps completed</div>
+              </div>
+            </div>
+            
+            {/* Feedback Box */}
+            <div className="bg-dark-800 rounded-lg border border-dark-700 p-3 shadow-md">
+              <h3 className="text-lg font-semibold text-primary-400 mb-1">Feedback</h3>
+              <p className="text-dark-200 text-sm">{feedback}</p>
+            </div>
+            
+            {/* Status Grid - Now in a grid of 4 instead of 2x2 */}
+            <div className="grid grid-cols-4 gap-2">
+              <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
+                <h3 className="text-xs font-medium text-dark-300">Lighting</h3>
+                <p className={`text-sm font-medium ${lighting === "Good" ? "text-success-400" : "text-warning-400"}`}>
+                  {lighting}
+                </p>
+              </div>
+              <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
+                <h3 className="text-xs font-medium text-dark-300">Visibility</h3>
+                <p className={`text-sm font-medium ${visibilityStatus.includes("Good") ? "text-success-400" : "text-warning-400"}`}>
+                  {visibilityStatus.includes("Good") ? "Good" : "Poor"}
+                </p>
+              </div>
+              <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
+                <h3 className="text-xs font-medium text-dark-300">Movement</h3>
+                <p className={`text-sm font-medium ${movementStatus.includes("Good") ? "text-success-400" : "text-warning-400"}`}>
+                  {movementStatus.includes("Good") ? "Good" : "Too Fast"}
+                </p>
+              </div>
+              
+              {latestFeedback?.rep_score ? (
+                <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
+                  <h3 className="text-xs font-medium text-dark-300">Form Score</h3>
+                  <div className="flex items-center">
+                    <span className="text-sm font-bold text-primary-400">{latestFeedback.rep_score.toFixed(1)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
+                  <h3 className="text-xs font-medium text-dark-300">Form Score</h3>
+                  <div className="text-sm font-medium text-dark-400">N/A</div>
+                </div>
+              )}
+            </div>
+            
+            {/* Advanced Metrics */}
+            {getAdvancedMetrics()}
           </div>
-        )}
-        
-        {getAdvancedMetrics()}
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
