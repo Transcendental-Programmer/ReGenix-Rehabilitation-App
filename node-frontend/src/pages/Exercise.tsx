@@ -6,7 +6,7 @@ import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { Camera } from "@mediapipe/camera_utils";
 import { POSE_CONNECTIONS } from "@mediapipe/pose";
 
-// Joint mapping for pose detection
+// Joint mapping
 const jointMap = {
   "nose": 0,
   "left_eye_inner": 1,
@@ -68,7 +68,7 @@ interface FeedbackData {
 const Exercise: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const exerciseName = searchParams.get("exercise");
+  const exerciseName = searchParams.get("exercise") || "test_exercise";
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -139,15 +139,14 @@ const Exercise: React.FC = () => {
       return;
     }
 
-    // Make sure DOM elements are available
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    
+
     if (!video || !canvas) {
       console.error("Video or canvas element not found");
       return;
     }
-    
+
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       console.error("Canvas context not available");
