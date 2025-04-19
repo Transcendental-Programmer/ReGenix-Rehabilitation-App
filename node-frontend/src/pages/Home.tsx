@@ -2,8 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, ArrowRight, CheckCircle, Clock, Play, Zap } from 'lucide-react';
 import Button from '../components/Button';
+import { useAuth } from '../context/AuthContext';
 
 const Home: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="bg-dark-950 min-h-screen">
       {/* Hero Section */}
@@ -18,18 +21,22 @@ const Home: React.FC = () => {
               Personalized rehabilitation plans, progress tracking, and expert guidance 
               at your fingertips. Get back to your best self with RehabPro.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/register">
-                <Button variant="primary" size="lg" icon={<ArrowRight />} iconPosition="right">
-                  Get Started
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" size="lg">
-                  Log In
-                </Button>
-              </Link>
-            </div>
+            
+            {/* Only show login/register buttons when not authenticated */}
+            {!isAuthenticated && (
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Link to="/register">
+                  <Button variant="primary" size="lg" icon={<ArrowRight />} iconPosition="right">
+                    Get Started
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button variant="outline" size="lg">
+                    Log In
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -108,11 +115,15 @@ const Home: React.FC = () => {
               Join thousands of users who've accelerated their rehabilitation with our 
               intelligent platform. Get started today and take control of your recovery.
             </p>
-            <Link to="/register">
-              <Button variant="primary" size="lg">
-                Start Your Recovery Journey
-              </Button>
-            </Link>
+            
+            {/* Only show the CTA button when not authenticated */}
+            {!isAuthenticated && (
+              <Link to="/register">
+                <Button variant="primary" size="lg">
+                  Start Your Recovery Journey
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
