@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
-// Import MediaPipe scripts (make sure they're loaded in public/index.html or use CDN dynamically)
-import { Pose } from "@mediapipe/pose";
-import { drawConnectors, drawLandmarks, POSE_CONNECTIONS } from "@mediapipe/drawing_utils";
+// Import from external libraries - with correct imports
+import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { Camera } from "@mediapipe/camera_utils";
+// Import POSE_CONNECTIONS from the correct location
+import { POSE_CONNECTIONS } from "@mediapipe/pose";
 
+// Joint mapping for pose detection
 const jointMap = {
   nose: 0,
   left_shoulder: 11,
@@ -27,21 +29,23 @@ export default function Exercise() {
   const navigate = useNavigate();
   const exerciseName = searchParams.get("exercise");
 
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [repCount, setRepCount] = useState(0);
   const [stage, setStage] = useState("N/A");
   const [feedback, setFeedback] = useState("Waiting...");
   const [lighting, setLighting] = useState("Checking...");
   const [currentSet, setCurrentSet] = useState(1);
-  const [latestFeedback, setLatestFeedback] = useState(null);
+  const [latestFeedback, setLatestFeedback] = useState<{
+    affected_joints?: number[];
+    affected_segments?: [string, string][];
+  } | null>(null);
 
   const totalSets = 3;
   const repsGoal = 10;
   const BRIGHTNESS_THRESHOLD = 80;
-
-  let setCompleteDialogShown = useRef(false);
+  const setCompleteDialogShown = useRef(false);
+  const cameraRef = useRef<any>(null);
 
   useEffect(() => {
     if (!exerciseName) {
@@ -50,19 +54,30 @@ export default function Exercise() {
       return;
     }
 
+    // Make sure DOM elements are available
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    
+    if (!video || !canvas) {
+      console.error("Video or canvas element not found");
+      return;
+    }
+    
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Canvas context not available");
+      return;
+    }
 
-    let camera;
+    const getJointIndex = (jointName: string) => jointMap[jointName as keyof typeof jointMap] ?? -1;
 
-    const getJointIndex = (jointName) => jointMap[jointName] ?? -1;
-
-    const getAverageBrightness = (video) => {
+    const getAverageBrightness = (video: HTMLVideoElement) => {
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = video.videoWidth;
       tempCanvas.height = video.videoHeight;
       const tempCtx = tempCanvas.getContext("2d");
+      if (!tempCtx) return 0;
+      
       tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
       const { data } = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
       let totalBrightness = 0;
@@ -73,13 +88,24 @@ export default function Exercise() {
       return totalBrightness / (data.length / 4);
     };
 
-    const resetExerciseState = () => {
-      fetch(`http://localhost:8000/reset/${exerciseName}`, { method: "POST" }).catch(console.error);
-      setRepCount(0);
+    const resetExerciseState = async () => {
+      try {
+        await fetch(`http://localhost:8000/reset/${exerciseName}`, { method: "POST" });
+        setRepCount(0);
+      } catch (err) {
+        console.error("Reset error:", err);
+      }
     };
 
-    const pose = new Pose({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+    // Import Pose from @mediapipe/pose
+    if (!window.Pose) {
+      console.error("Pose detection is not available. Make sure to include MediaPipe Pose library.");
+      setFeedback("Pose detection not available");
+      return;
+    }
+
+    const pose = new window.Pose({
+      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
     });
 
     pose.setOptions({
@@ -89,7 +115,7 @@ export default function Exercise() {
       minTrackingConfidence: 0.6,
     });
 
-    pose.onResults(async (results) => {
+    pose.onResults(async (results: any) => {
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
@@ -122,13 +148,15 @@ export default function Exercise() {
         if (latestFeedback?.affected_joints) {
           latestFeedback.affected_joints.forEach((jointIndex) => {
             const landmark = results.poseLandmarks[jointIndex];
-            ctx.fillStyle = "#FF0000";
-            ctx.strokeStyle = "#FFFFFF";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 8, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
+            if (landmark) {
+              ctx.fillStyle = "#FF0000";
+              ctx.strokeStyle = "#FFFFFF";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 8, 0, 2 * Math.PI);
+              ctx.fill();
+              ctx.stroke();
+            }
           });
         }
 
@@ -170,40 +198,44 @@ export default function Exercise() {
           setFeedback("Connection error. Check backend server.");
         }
       }
+
+      ctx.restore();
     });
 
-    camera = new Camera(video, {
+    cameraRef.current = new Camera(video, {
       onFrame: async () => {
-        const brightness = getAverageBrightness(video);
-        if (brightness < BRIGHTNESS_THRESHOLD) {
-          setLighting("Too Dark");
-          setFeedback("Lighting is too dark. Please improve your lighting.");
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        } else {
-          setLighting("Good");
-          await pose.send({ image: video });
+        if (video.videoWidth > 0) { // Make sure video is loaded
+          const brightness = getAverageBrightness(video);
+          if (brightness < BRIGHTNESS_THRESHOLD) {
+            setLighting("Too Dark");
+            setFeedback("Lighting is too dark. Please improve your lighting.");
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+          } else {
+            setLighting("Good");
+            await pose.send({ image: video });
+          }
         }
       },
       width: 640,
       height: 480,
     });
 
-    camera.start().catch((err) => {
+    cameraRef.current.start().catch((err: Error) => {
       console.error("Camera error:", err);
       alert("Failed to start camera. Check permissions.");
     });
 
     return () => {
-      if (camera) camera.stop();
+      if (cameraRef.current) cameraRef.current.stop();
     };
-  }, [exerciseName, currentSet]);
+
+  }, [exerciseName, currentSet, navigate]);
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h2>{exerciseName?.replace("_", " ").toUpperCase()}</h2>
+      <h2>{exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}</h2>
       <video ref={videoRef} style={{ display: "none" }} playsInline></video>
       <canvas ref={canvasRef} width={640} height={480} style={{ border: "1px solid black" }} />
-
       <div style={{ marginTop: "1rem" }}>
         <p><strong>Lighting:</strong> {lighting}</p>
         <p><strong>Reps:</strong> {repCount} / {repsGoal}</p>
@@ -213,4 +245,11 @@ export default function Exercise() {
       </div>
     </div>
   );
+}
+
+// Extend the Window interface to include the Pose constructor
+declare global {
+  interface Window {
+    Pose: any;
+  }
 }
