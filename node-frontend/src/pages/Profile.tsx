@@ -231,6 +231,7 @@ const Profile: React.FC = () => {
                         value={formData.age || ''}
                         onChange={handleInputChange}
                         className="input"
+                        onWheel={(e) => e.currentTarget.blur()}
                       />
                     </div>
 
@@ -248,6 +249,7 @@ const Profile: React.FC = () => {
                           className="input rounded-r-none"
                           placeholder="Height"
                           min="0"
+                          onWheel={(e) => e.currentTarget.blur()}
                         />
                         <span className="px-3 py-2 border border-l-0 border-dark-500 bg-dark-600 text-dark-300 rounded-r-md">
                           cm
@@ -269,6 +271,7 @@ const Profile: React.FC = () => {
                           className="input rounded-r-none"
                           placeholder="Weight"
                           min="0"
+                          onWheel={(e) => e.currentTarget.blur()}
                         />
                         <span className="px-3 py-2 border border-l-0 border-dark-500 bg-dark-600 text-dark-300 rounded-r-md">
                           kg
