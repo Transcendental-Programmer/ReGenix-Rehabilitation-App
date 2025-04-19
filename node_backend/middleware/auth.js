@@ -9,14 +9,15 @@ const auth = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
     const token = authHeader.replace('Bearer ', '');
-    
+
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Find user
     const user = await User.findById(decoded.id).select('-password');
+    console.log(user);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
