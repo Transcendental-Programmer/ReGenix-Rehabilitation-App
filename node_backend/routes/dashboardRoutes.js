@@ -1,10 +1,10 @@
 // routes/dashboardRoutes.js
 const express = require('express');
-const { getDashboard } = require('../controllers/dashboardController');
-const auth = require('../middleware/auth');
-
 const router = express.Router();
+const { getUserDashboardSummary } = require('../controllers/dashboardController');
+const { protect } = require('../middleware/authMiddleware');
 
-router.get('/', auth, getDashboard);
+// Get user's rehabilitation dashboard summary
+router.get('/user/:userId/summary', protect, getUserDashboardSummary);
 
 module.exports = router;

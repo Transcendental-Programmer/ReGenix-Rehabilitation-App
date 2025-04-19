@@ -1,32 +1,18 @@
 // routes/sessionRoutes.js
 const express = require('express');
 const router = express.Router();
-const { 
-  createSession, 
-  saveSessionLogs,
-  completeSession,
-  getUserSessions,
-  getSessionDetails,
-  getSessionSummary
-} = require('../controllers/sessionController');
-const { protect } = require('../middleware/authMiddleware');
+const sessionController = require('../controllers/sessionController');
+const { protect } = require('../middleware/auth'); // Assuming you have authentication middleware
 
-// Create a new session
-router.post('/', protect, createSession);
+// Existing routes (you likely already have these)
+router.post('/', protect, sessionController.createSession);
+router.post('/:sessionId/logs', protect, sessionController.saveSessionLogs);
+router.put('/:sessionId/complete', protect, sessionController.completeSession);
+router.get('/user/:userId', protect, sessionController.getUserSessions);
+router.get('/:sessionId', protect, sessionController.getSessionDetails);
+router.get('/:sessionId/summary', protect, sessionController.getSessionSummary);
 
-// Save logs for a session
-router.post('/:sessionId/logs', protect, saveSessionLogs);
-
-// Complete a session
-router.put('/:sessionId/complete', protect, completeSession);
-
-// Get all sessions for a user
-router.get('/user/:userId', protect, getUserSessions);
-
-// Get detailed session data with logs
-router.get('/:sessionId', protect, getSessionDetails);
-
-// Get session summary with statistics
-router.get('/:sessionId/summary', protect, getSessionSummary);
+// New routes for session history
+router.get('/user/:userId/history', protect, sessionController.getUserSessionHistory);
 
 module.exports = router;

@@ -328,3 +328,60 @@ exports.getSessionSummary = async (req, res) => {
     });
   }
 };
+
+
+// Add these methods to your existing sessionController.js
+
+// Get user's previous sessions with summary info
+exports.getUserSessionHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Find all sessions for this user
+    const sessions = await Session.find({ userId })
+      .sort({ createdAt: -1 }) // Most recent first
+      .select('exerciseType startTime endTime completed overallScore scoreLabel totalSets completedSets');
+    
+    // Calculate duration and format session data
+    const formattedSessions = sessions.map(session => {
+      const startTime = new Date(session.startTime);
+      let duration = null;
+      
+      if (session.endTime) {
+        const endTime = new Date(session.endTime);
+        duration = Math.round((endTime - startTime) / 1000); // Duration in seconds
+      }
+      
+      return {
+        id: session._id,
+        exerciseType: session.exerciseType,
+        startTime: startTime,
+        completed: session.completed,
+        duration: duration, // in seconds
+        score: session.overallScore || 0,
+        scoreLabel: session.scoreLabel || 'Not Rated',
+        progress: `${session.completedSets}/${session.totalSets} sets`
+      };
+    });
+    
+    return res.status(200).json({
+      success: true,
+      count: formattedSessions.length,
+      data: formattedSessions
+    });
+  } catch (error) {
+    console.error('Error getting user session history:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

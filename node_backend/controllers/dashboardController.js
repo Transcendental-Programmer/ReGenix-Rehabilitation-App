@@ -1,48 +1,67 @@
 // controllers/dashboardController.js
 const Session = require('../models/Session');
-const Planner = require('../models/Planner');
-const { calculateAdherenceRate, calculateRecoveryPercentage } = require('../services/dashboardService');
+const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 
-// Get dashboard data
-exports.getDashboard = async (req, res) => {
+// Get user's rehabilitation dashboard summary
+exports.getUserDashboardSummary = async (req, res) => {
   try {
-    // Get all sessions for user
-    const sessions = await Session.find({ userId: req.user._id });
+    const { userId } = req.params;
     
-    // Get current week's planner
-    const startOfWeek = new Date();
-    startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Set to Sunday
-    
-    const planner = await Planner.findOne({
-      userId: req.user._id,
-      weekStartDate: { $gte: startOfWeek }
+    // Get completed sessions
+    const sessions = await Session.find({ 
+      userId,
+      completed: true,
+      endTime: { $exists: true }
     });
     
-    // Calculate metrics
-    const totalSessions = sessions.length;
-    
-    const averageAccuracy = totalSessions > 0 
-      ? sessions.reduce((sum, session) => sum + session.accuracyScore, 0) / totalSessions
-      : 0;
-    
-    const recoveryPercentage = calculateRecoveryPercentage(sessions);
-    
-    const adherenceRate = planner
-      ? calculateAdherenceRate(sessions, planner, startOfWeek)
-      : 0;
-    
-    res.status(200).json({
-      success: true,
-      data: {
-        totalSessions,
-        averageAccuracy,
-        recoveryPercentage,
-        adherenceRate
+    // Calculate total time spent
+    let totalTimeInMinutes = 0;
+    sessions.forEach(session => {
+      if (session.endTime && session.startTime) {
+        const duration = (new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60); // Convert to minutes
+        totalTimeInMinutes += duration;
       }
     });
+    
+    // Calculate average session duration
+    const averageSessionDuration = sessions.length > 0 ? Math.round(totalTimeInMinutes / sessions.length) : 0;
+    
+    // Get exercise distribution
+    const exerciseDistribution = await Session.aggregate([
+      { $match: { userId: new ObjectId(userId) } },
+      { $group: { 
+          _id: '$exerciseType', 
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+    
+    // Determine most performed exercise
+    let mostPerformedExercise = exerciseDistribution.length > 0 ? exerciseDistribution[0]._id : null;
+    
+    // Format exercise distribution
+    const formattedExerciseDistribution = exerciseDistribution.map(item => ({
+      exercise: item._id,
+      count: item.count
+    }));
+    
+    return res.status(200).json({
+      overview: {
+        totalSessions: sessions.length,
+        totalTimeSpent: Math.round(totalTimeInMinutes),
+        averageSessionDuration,
+        mostPerformedExercise
+      },
+      exerciseDistribution: formattedExerciseDistribution
+    });
   } catch (error) {
-    console.error('Dashboard calculation error:', error);
-    res.status(500).json({ error: 'Server error while generating dashboard' });
+    console.error('Error generating dashboard summary:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
