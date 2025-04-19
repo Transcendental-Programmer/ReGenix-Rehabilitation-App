@@ -23,7 +23,7 @@
 //   const [isLoading, setIsLoading] = useState(false);
 //   const [error, setError] = useState('');
 //   const [success, setSuccess] = useState('');
-  
+
 //   useEffect(() => {
 //     // For demo, create a profile with the user info plus some mock data
 //     if (user) {
@@ -38,7 +38,7 @@
 //       });
 //     }
 //   }, [user]);
-  
+
 //   const handleEditToggle = () => {
 //     if (isEditing) {
 //       // Cancel editing, reset form data
@@ -51,7 +51,7 @@
 //     }
 //     setIsEditing(!isEditing);
 //   };
-  
+
 //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     const { name, value } = e.target;
 //     setFormData({
@@ -59,26 +59,26 @@
 //       [name]: value
 //     });
 //   };
-  
+
 //   const handleSubmit = async (e: React.FormEvent) => {
 //     e.preventDefault();
 //     setIsLoading(true);
 //     setError('');
 //     setSuccess('');
-    
+
 //     try {
 //       // In a real app, send the data to the backend
 //       // await updateProfile(formData);
-      
+
 //       // Simulate API call
 //       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
 //       // Update local profile data
 //       setProfile({
 //         ...profile!,
 //         ...formData
 //       });
-      
+
 //       setSuccess('Profile updated successfully!');
 //       setIsEditing(false);
 //       setIsLoading(false);
@@ -87,7 +87,7 @@
 //       setIsLoading(false);
 //     }
 //   };
-  
+
 //   if (!profile) {
 //     return (
 //       <div className="min-h-[80vh] flex items-center justify-center">
@@ -95,7 +95,7 @@
 //       </div>
 //     );
 //   }
-  
+
 //   return (
 //     <div className="container mx-auto px-4 py-8">
 //       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -114,19 +114,19 @@
 //           {isEditing ? 'Cancel' : 'Edit Profile'}
 //         </Button>
 //       </div>
-      
+
 //       {error && (
 //         <div className="mb-6 p-4 bg-error-900/30 border border-error-700 rounded-md text-error-400">
 //           {error}
 //         </div>
 //       )}
-      
+
 //       {success && (
 //         <div className="mb-6 p-4 bg-success-900/30 border border-success-700 rounded-md text-success-400">
 //           {success}
 //         </div>
 //       )}
-      
+
 //       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 //         <div className="lg:col-span-1">
 //           <Card>
@@ -149,13 +149,13 @@
 //                 <h3 className="text-xl font-medium">{profile.name}</h3>
 //                 <p className="text-dark-300">{profile.email}</p>
 //               </div>
-              
+
 //               {/* <div className="space-y-4">
 //                 <div>
 //                   <label className="block text-sm font-medium text-dark-300 mb-1">Account ID</label>
 //                   <p className="bg-dark-800 p-2 rounded-md text-dark-200 truncate">{profile.id}</p>
 //                 </div>
-                
+
 //                 <div className="mt-6">
 //                   <Button variant="outline" className="w-full" icon={<Lock />} iconPosition="left">
 //                     Change Password
@@ -163,13 +163,13 @@
 //                 </div>
 //               </div> */}
 
-              
 
-              
+
+
 //             </CardContent>
 //           </Card>
 //         </div>
-        
+
 //         <div className="lg:col-span-2">
 //           <Card>
 //             <CardHeader>
@@ -193,7 +193,7 @@
 //                         required
 //                       />
 //                     </div>
-                    
+
 //                     <div>
 //                       <label htmlFor="email" className="block text-sm font-medium text-dark-300 mb-1">
 //                         Email Address
@@ -209,7 +209,7 @@
 //                         disabled  // Email shouldn't be editable in this UI
 //                       />
 //                     </div>
-                    
+
 //                     <div>
 //                       <label htmlFor="injuryType" className="block text-sm font-medium text-dark-300 mb-1">
 //                         Injury Type
@@ -223,7 +223,7 @@
 //                         className="input"
 //                       />
 //                     </div>
-                    
+
 //                     <div>
 //                       <label htmlFor="injuryDate" className="block text-sm font-medium text-dark-300 mb-1">
 //                         Injury Date
@@ -237,7 +237,7 @@
 //                         className="input"
 //                       />
 //                     </div>
-                    
+
 //                     <div>
 //                       <label htmlFor="therapistName" className="block text-sm font-medium text-dark-300 mb-1">
 //                         Therapist Name
@@ -251,7 +251,7 @@
 //                         className="input"
 //                       />
 //                     </div>
-                    
+
 //                     <div>
 //                       <label htmlFor="therapistEmail" className="block text-sm font-medium text-dark-300 mb-1">
 //                         Therapist Email
@@ -266,7 +266,7 @@
 //                       />
 //                     </div>
 //                   </div>
-                  
+
 //                   <div className="flex justify-end space-x-4 pt-4">
 //                     <Button 
 //                       type="button" 
@@ -291,7 +291,7 @@
 //                       <h3 className="text-sm font-medium text-dark-300 mb-1">Injury Type</h3>
 //                       <p className="text-lg">{profile.injuryType || 'Not specified'}</p>
 //                     </div>
-                    
+
 //                     <div>
 //                       <h3 className="text-sm font-medium text-dark-300 mb-1">Injury Date</h3>
 //                       <p className="text-lg">
@@ -304,12 +304,12 @@
 //                           : 'Not specified'}
 //                       </p>
 //                     </div>
-                    
+
 //                     <div>
 //                       <h3 className="text-sm font-medium text-dark-300 mb-1">Therapist Name</h3>
 //                       <p className="text-lg">{profile.therapistName || 'Not assigned'}</p>
 //                     </div>
-                    
+
 //                     <div>
 //                       <h3 className="text-sm font-medium text-dark-300 mb-1">Therapist Email</h3>
 //                       <p className="text-lg">
@@ -323,7 +323,7 @@
 //                       </p>
 //                     </div>
 //                   </div>
-                  
+
 //                   <div className="bg-dark-700 p-4 rounded-lg mt-8 flex items-start">
 //                     <Info size={20} className="text-primary-400 mt-0.5 mr-3 flex-shrink-0" />
 //                     <p className="text-dark-200">
@@ -334,7 +334,7 @@
 //               )}
 //             </CardContent>
 //           </Card>
-          
+
 //         </div>
 //       </div>
 //     </div>
@@ -367,7 +367,7 @@ const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   useEffect(() => {
     // For demo, create a profile with the user info plus some mock data
     if (user) {
@@ -381,7 +381,7 @@ const Profile: React.FC = () => {
       });
     }
   }, [user]);
-  
+
   const handleEditToggle = () => {
     if (isEditing) {
       // Cancel editing, reset form data
@@ -394,7 +394,7 @@ const Profile: React.FC = () => {
     }
     setIsEditing(!isEditing);
   };
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
@@ -402,26 +402,26 @@ const Profile: React.FC = () => {
       [name]: value
     });
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       // In a real app, send the data to the backend
       // await updateProfile(formData);
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Update local profile data
       setProfile({
         ...profile!,
         ...formData
       });
-      
+
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
       setIsLoading(false);
@@ -430,7 +430,7 @@ const Profile: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   if (!profile) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
@@ -438,7 +438,7 @@ const Profile: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -457,19 +457,19 @@ const Profile: React.FC = () => {
           {isEditing ? 'Cancel' : 'Edit Profile'}
         </Button>
       </div>
-      
+
       {error && (
         <div className="mb-6 p-4 bg-error-900/30 border border-error-700 rounded-md text-error-400">
           {error}
         </div>
       )}
-      
+
       {success && (
         <div className="mb-6 p-4 bg-success-900/30 border border-success-700 rounded-md text-success-400">
           {success}
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Card>
@@ -479,15 +479,50 @@ const Profile: React.FC = () => {
             <CardContent>
               <div className="flex flex-col items-center mb-6">
                 <div className="w-32 h-32 rounded-full bg-dark-700 flex items-center justify-center mb-4">
-                  {profile.profilePicture ? (
-                    <img 
-                      src={profile.profilePicture} 
-                      alt={profile.name} 
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <UserCircle size={80} className="text-dark-500" />
-                  )}
+                  {(() => {
+                    const avatarLinks = [
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Alfa",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Bravo",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Charlie",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Delta",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Echo",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Foxtrot",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Golf",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Hotel",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=India",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Juliet",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Kilo",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Lima",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Mike",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=November",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Oscar",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Papa",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Quebec",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Romeo",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Sierra",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Tango",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Uniform",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Victor",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Whiskey",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Xray",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Yankee",
+                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Zulu"
+                    ];
+                    const getAvatarUrl = (name: string) => {
+                      const index = name ? name[0].toUpperCase().charCodeAt(0) - 65 : 0;
+                      return avatarLinks[index % avatarLinks.length];
+                    };
+                    const avatarUrl = profile.profilePicture || getAvatarUrl(profile.name);
+
+                    return (
+                      <img
+                        src={avatarUrl}
+                        alt={profile.name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    );
+                  })()}
+
                 </div>
                 <h3 className="text-xl font-medium">{profile.name}</h3>
                 <p className="text-dark-300">{profile.email}</p>
@@ -495,7 +530,7 @@ const Profile: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -519,7 +554,7 @@ const Profile: React.FC = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-dark-300 mb-1">
                         Email Address
@@ -535,7 +570,7 @@ const Profile: React.FC = () => {
                         disabled  // Email shouldn't be editable in this UI
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor="age" className="block text-sm font-medium text-dark-300 mb-1">
                         Age
@@ -549,7 +584,7 @@ const Profile: React.FC = () => {
                         className="input"
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor="height" className="block text-sm font-medium text-dark-300 mb-1">
                         Height
@@ -564,7 +599,7 @@ const Profile: React.FC = () => {
                         placeholder="e.g., 175 cm"
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor="weight" className="block text-sm font-medium text-dark-300 mb-1">
                         Weight
@@ -580,18 +615,18 @@ const Profile: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end space-x-4 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
+                    <Button
+                      type="button"
+                      variant="ghost"
                       onClick={handleEditToggle}
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      type="submit" 
-                      variant="primary" 
+                    <Button
+                      type="submit"
+                      variant="primary"
                       isLoading={isLoading}
                     >
                       Save Changes
@@ -605,18 +640,18 @@ const Profile: React.FC = () => {
                       <h3 className="text-sm font-medium text-dark-300 mb-1">Age</h3>
                       <p className="text-lg">{profile.age || 'Not specified'}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-sm font-medium text-dark-300 mb-1">Height</h3>
                       <p className="text-lg">{profile.height || 'Not specified'}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-sm font-medium text-dark-300 mb-1">Weight</h3>
                       <p className="text-lg">{profile.weight || 'Not specified'}</p>
                     </div>
                   </div>
-                  
+
                   <div className="bg-dark-700 p-4 rounded-lg mt-8 flex items-start">
                     <Info size={20} className="text-primary-400 mt-0.5 mr-3 flex-shrink-0" />
                     <p className="text-dark-200">
