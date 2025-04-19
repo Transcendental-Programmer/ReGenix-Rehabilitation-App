@@ -357,7 +357,9 @@ interface UserProfile {
   age?: number;
   height?: string;
   weight?: string;
+  gender?: 'male' | 'female';
 }
+
 
 const Profile: React.FC = () => {
   const { user, updateProfile } = useAuth();
@@ -377,8 +379,10 @@ const Profile: React.FC = () => {
         email: user.email,
         age: 35,
         height: '175 cm',
-        weight: '70 kg'
+        weight: '70 kg',
+        gender: 'male' // or 'female'
       });
+      
     }
   }, [user]);
 
@@ -480,48 +484,29 @@ const Profile: React.FC = () => {
               <div className="flex flex-col items-center mb-6">
                 <div className="w-32 h-32 rounded-full bg-dark-700 flex items-center justify-center mb-4">
                   {(() => {
-                    const avatarLinks = [
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Alfa",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Bravo",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Charlie",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Delta",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Echo",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Foxtrot",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Golf",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Hotel",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=India",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Juliet",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Kilo",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Lima",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Mike",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=November",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Oscar",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Papa",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Quebec",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Romeo",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Sierra",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Tango",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Uniform",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Victor",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Whiskey",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Xray",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Yankee",
-                      "https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=Zulu"
+                    const seeds = [
+                      'Blaze', 'Shadow', 'Nova', 'Jett', 'Zane', 'Maverick', 'Ace', 'Ryder',
+                      'Knox', 'Axel', 'Dash', 'Hunter', 'Xeno'
                     ];
-                    const getAvatarUrl = (name: string) => {
-                      const index = name ? name[0].toUpperCase().charCodeAt(0) - 65 : 0;
-                      return avatarLinks[index % avatarLinks.length];
+
+                    const getSwagAvatar = (name: string, gender: string = 'male') => {
+                      const index = name ? (name[0].toUpperCase().charCodeAt(0) - 65) % 13 : 0;
+                      const seed = seeds[index];
+                      const style = gender.toLowerCase() === 'female' ? 'lorelei' : 'micah';
+                      return `https://api.dicebear.com/8.x/${style}/svg?seed=${seed}`;
                     };
-                    const avatarUrl = profile.profilePicture || getAvatarUrl(profile.name);
+
+                    const avatarUrl = profile.profilePicture || getSwagAvatar(profile.name, profile.gender || 'male');
 
                     return (
                       <img
                         src={avatarUrl}
                         alt={profile.name}
-                        className="w-full h-full rounded-full object-cover"
+                        className="w-full h-full rounded-full object-cover border-4 border-dark-500 shadow-lg"
                       />
                     );
                   })()}
+
 
                 </div>
                 <h3 className="text-xl font-medium">{profile.name}</h3>
