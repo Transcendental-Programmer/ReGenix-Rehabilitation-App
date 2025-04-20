@@ -318,7 +318,7 @@ const Record: React.FC = () => {
                             sessionDetails[session.id].setStats.length > 0 && (
                               <>
                                 <h4 className="font-medium mb-3">Sets</h4>
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                   {sessionDetails[session.id].setStats.map((set, i) => (
                                     <div key={i} className="p-3 bg-dark-700 rounded-md">
                                       <div className="flex justify-between items-center mb-2">

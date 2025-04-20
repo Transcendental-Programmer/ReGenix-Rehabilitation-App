@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, ArrowRight, CheckCircle, Clock, Play, Zap } from 'lucide-react';
+import { Activity, ArrowRight, CheckCircle, Clock, Play, Zap, Users } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 
@@ -118,6 +118,48 @@ const Home: React.FC = () => {
                 </Button>
               </Link>
             )}
+          </div>
+        </div>
+      </section>
+      
+      {/* Developers Section */}
+      <section className="py-16 bg-dark-950">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Users className="mx-auto text-accent-500 mb-6" size={40} />
+            <h2 className="text-3xl font-bold mb-8">Meet Our Team</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="p-4">
+                <div className="w-24 h-24 rounded-full bg-dark-800 border-2 border-primary-500 mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold">Shreshtha Garg</h3>
+                <p className="text-primary-400">Backend Developer</p>
+              </div>
+              
+              <div className="p-4">
+                <div className="w-24 h-24 rounded-full bg-dark-800 border-2 border-secondary-500 mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold">Aayush Dhakad</h3>
+                <p className="text-secondary-400">Frontend Developer</p>
+              </div>
+              
+              <div className="p-4">
+                <div className="w-24 h-24 rounded-full bg-dark-800 border-2 border-accent-500 mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold">Yash Rathore</h3>
+                <p className="text-accent-400">Frontend Developer</p>
+              </div>
+              
+              <div className="p-4">
+                <div className="w-24 h-24 rounded-full bg-dark-800 border-2 border-primary-500 mx-auto mb-4"></div>
+                <h3 className="text-lg font-semibold">Priyansh Saxena</h3>
+                <p className="text-primary-400">AI/ML Engineer</p>
+              </div>
+            </div>
+            
+            <div className="mt-12">
+              <p className="text-dark-300">
+                PosturePro is proudly built by Fitness AI Solutions, a team passionate about combining cutting-edge technology with fitness expertise to create tools that make exercise safer and more effective for everyone.
+              </p>
+            </div>
           </div>
         </div>
       </section>
