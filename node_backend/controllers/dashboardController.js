@@ -27,11 +27,15 @@ exports.getUserDashboardSummary = async (req, res) => {
     // Calculate average session duration
     const averageSessionDuration = sessions.length > 0 ? Math.round(totalTimeInMinutes / sessions.length) : 0;
     
-    // Get exercise distribution
+    // Get exercise distribution - CHANGED FROM exerciseType to exercise
     const exerciseDistribution = await Session.aggregate([
-      { $match: { userId: new ObjectId(userId) } },
+      { $match: { 
+          userId: new ObjectId(userId),
+          completed: true  // Only count completed sessions
+        } 
+      },
       { $group: {
-          _id: '$exerciseType', 
+          _id: '$exercise',  // CHANGED FROM exerciseType to exercise 
           count: { $sum: 1 }
         }
       },
