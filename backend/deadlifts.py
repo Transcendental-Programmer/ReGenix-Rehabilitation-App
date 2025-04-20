@@ -1,7 +1,7 @@
 import numpy as np
 import time
 from state import exercise_state
-from feedback_config import DEADLIFT_CONFIG, DEADLIFT_METRICS, ADVANCED_FEEDBACK
+from feedback_config import DEADLIFT_CONFIG, DEADLIFT_METRICS, ADVANCED_FEEDBACK, FEEDBACK_TO_JOINTS
 from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
@@ -215,6 +215,38 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
             # Session state module not available
             pass
 
+    # Create affected joints and segments arrays for visualization
+    affected_joints = []
+    affected_segments = []
+    
+    # Map feedback flags to affected joints
+    for flag in feedback_flags:
+        if flag in FEEDBACK_TO_JOINTS:
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                if group == "knees":
+                    affected_joints.extend([25, 26])  # Left and right knee
+                elif group == "hips":
+                    affected_joints.extend([23, 24])  # Left and right hip
+                elif group == "back":
+                    affected_joints.extend([11, 12, 23, 24])  # Shoulders and hips for back
+    
+    # Remove duplicates
+    affected_joints = list(set(affected_joints))
+    
+    # Create affected segments based on joints
+    if 11 in affected_joints or 23 in affected_joints:  # Back issue - left side
+        affected_segments.append(["left_shoulder", "left_hip"])
+        
+    if 12 in affected_joints or 24 in affected_joints:  # Back issue - right side
+        affected_segments.append(["right_shoulder", "right_hip"])
+        
+    if 23 in affected_joints or 25 in affected_joints:  # Left hip or knee
+        affected_segments.append(["left_hip", "left_knee"])
+        
+    if 24 in affected_joints or 26 in affected_joints:  # Right hip or knee
+        affected_segments.append(["right_hip", "right_knee"])
+
     # Update state with both basic and advanced metrics
     new_state = {
         "repCount": counter,
@@ -230,7 +262,9 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
         "feedback_flags": feedback_flags,
         "rep_score": rep_score,
         "score_label": score_label,
-        "advanced_metrics": advanced_metrics
+        "advanced_metrics": advanced_metrics,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["deadlifts"] = new_state

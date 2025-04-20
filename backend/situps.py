@@ -1,6 +1,6 @@
 import numpy as np
 from state import exercise_state
-from feedback_config import SITUP_CONFIG
+from feedback_config import SITUP_CONFIG, FEEDBACK_TO_JOINTS
 from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
@@ -117,6 +117,45 @@ def process_landmarks(landmarks, tolerance, session_id=None):
             # Session state module not available, continue without logging
             pass
 
+    # Create affected joints and segments arrays for visualization
+    affected_joints = []
+    affected_segments = []
+    
+    # Map feedback flags to affected joints
+    for flag in feedback:
+        if flag in FEEDBACK_TO_JOINTS:
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                if group == "knees":
+                    affected_joints.extend([25, 26])  # Left and right knee
+                elif group == "hips":
+                    affected_joints.extend([23, 24])  # Left and right hip
+                elif group == "back":
+                    # No direct point for back, use shoulders and hips
+                    affected_joints.extend([11, 12, 23, 24])
+                elif group == "shoulders":
+                    affected_joints.extend([11, 12])  # Left and right shoulder
+                
+    # Remove duplicates
+    affected_joints = list(set(affected_joints))
+    
+    # Create affected segments based on joints
+    if 0 in affected_joints or 11 in affected_joints or 12 in affected_joints:  # Nose or shoulders
+        affected_segments.append(["nose", "left_shoulder"])
+        affected_segments.append(["nose", "right_shoulder"])
+    
+    if 11 in affected_joints or 23 in affected_joints:  # Left shoulder or hip
+        affected_segments.append(["left_shoulder", "left_hip"])
+    
+    if 12 in affected_joints or 24 in affected_joints:  # Right shoulder or hip
+        affected_segments.append(["right_shoulder", "right_hip"])
+    
+    if 23 in affected_joints or 25 in affected_joints:  # Left hip or knee
+        affected_segments.append(["left_hip", "left_knee"])
+        
+    if 24 in affected_joints or 26 in affected_joints:  # Right hip or knee
+        affected_segments.append(["right_hip", "right_knee"])
+
     new_state = {
         "counter": counter,
         "stage": stage,
@@ -125,7 +164,9 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "feedback": feedback_message,
         "rep_score": rep_score,
         "score_label": score_label,
-        "feedback_flags": feedback
+        "feedback_flags": feedback,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["situps"] = new_state
