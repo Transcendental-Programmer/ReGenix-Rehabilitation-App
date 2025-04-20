@@ -1,4 +1,3 @@
-// models/Session.js
 const mongoose = require('mongoose');
 
 const SessionSchema = new mongoose.Schema({
@@ -7,18 +6,24 @@ const SessionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  exerciseType: {
+  exercise: {
     type: String,
     required: true,
     enum: ['squats', 'pushups', 'deadlifts', 'lunges', 'situps', 'bicep_curls']
+  },
+  duration: {
+    type: Number,  // in seconds
+    default: 0
+  },
+  accuracyScore: {
+    type: Number,
+    default: 0
   },
   startTime: {
     type: Date,
     default: Date.now
   },
-  endTime: {
-    type: Date
-  },
+  endTime: Date,
   completed: {
     type: Boolean,
     default: false
@@ -35,15 +40,13 @@ const SessionSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
-  overallScore: {
-    type: Number
-  },
+  overallScore: Number,
   scoreLabel: {
     type: String,
     enum: ['Excellent', 'Good', 'Average', 'Needs Improvement']
   }
-}, {
-  timestamps: true
+}, { 
+  timestamps: true 
 });
 
 module.exports = mongoose.model('Session', SessionSchema);

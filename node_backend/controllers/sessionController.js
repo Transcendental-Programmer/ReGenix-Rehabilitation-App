@@ -5,115 +5,64 @@ const SessionLog = require('../models/SessionLog');
 // Create a new exercise session
 exports.createSession = async (req, res) => {
   try {
-    const { userId, exerciseType, totalSets, targetReps } = req.body;
+    // Get user ID from authenticated user
+    const userId = req.user._id;
     
-    if (!userId || !exerciseType) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User ID and exercise type are required' 
-      });
-    }
+    const { exercise, totalSets, targetReps } = req.body;
     
     const newSession = new Session({
-      userId,
-      exerciseType,
+      userId, // Now using authenticated user's ID
+      exercise,
       totalSets: totalSets || 3,
       targetReps: targetReps || 10
     });
     
     await newSession.save();
     
-    return res.status(201).json({
-      success: true,
-      data: newSession
+    return res.status(201).json({ 
+      success: true, 
+      data: newSession 
     });
   } catch (error) {
     console.error('Error creating session:', error);
-    return res.status(500).json({
+    return res.status(500).json({ 
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message 
     });
   }
 };
 
 // Save session logs received from frontend
+// Modify saveSessionLogs controller
 exports.saveSessionLogs = async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { setNumber, repCount, logs } = req.body;
-    
-    if (!sessionId || !logs || !Array.isArray(logs)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Session ID and logs array are required'
-      });
-    }
-    
-    // Find the session
+
     const session = await Session.findById(sessionId);
-    if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: 'Session not found'
-      });
-    }
-    
-    // Find existing log for this set or create new one
-    let sessionLog = await SessionLog.findOne({ 
-      sessionId, 
-      setNumber: setNumber || 1 
-    });
-    
-    if (!sessionLog) {
-      sessionLog = new SessionLog({
-        sessionId,
-        setNumber: setNumber || 1,
-        repCount: repCount || 0,
-        logs: []
-      });
-    }
-    
-    // Update rep count if provided
-    if (repCount !== undefined) {
-      sessionLog.repCount = repCount;
-    }
-    
-    // Add new logs
-    sessionLog.logs.push(...logs);
-    
-    await sessionLog.save();
-    
-    // Check if set is complete based on rep count
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+
+    let sessionLog = await SessionLog.findOneAndUpdate(
+      { sessionId, setNumber },
+      { $push: { logs: { $each: logs } }, repCount },
+      { new: true, upsert: true }
+    );
+
+    // Update set completion
     if (sessionLog.repCount >= session.targetReps) {
       session.completedSets += 1;
-      
-      // Check if all sets are complete
       if (session.completedSets >= session.totalSets) {
         session.completed = true;
         session.endTime = new Date();
-        
-        // Calculate overall score
-        await calculateSessionScore(sessionId);
       }
-      
       await session.save();
     }
-    
-    return res.status(200).json({
-      success: true,
-      data: {
-        session,
-        sessionLog
-      }
-    });
+
+    res.json({ session, sessionLog });
   } catch (error) {
-    console.error('Error saving session logs:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
+    console.error('Error saving logs:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -121,7 +70,8 @@ exports.saveSessionLogs = async (req, res) => {
 exports.completeSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    
+    const { duration, accuracyScore } = req.body;
+
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({
@@ -129,16 +79,15 @@ exports.completeSession = async (req, res) => {
         message: 'Session not found'
       });
     }
-    
-    session.completed = true;
+
+    session.duration = duration;
+    session.accuracyScore = accuracyScore;
     session.endTime = new Date();
-    
-    await session.save();
-    
-    // Calculate overall score
+    session.completed = true;
+
     await calculateSessionScore(sessionId);
-    
-    // Get updated session with score
+    await session.save();
+
     const updatedSession = await Session.findById(sessionId);
     
     return res.status(200).json({
@@ -167,7 +116,6 @@ async function calculateSessionScore(sessionId) {
     let totalScore = 0;
     let scoreCount = 0;
     
-    // Calculate average score across all logs
     sessionLogs.forEach(setLog => {
       setLog.logs.forEach(log => {
         if (log.repScore !== undefined) {
@@ -180,7 +128,6 @@ async function calculateSessionScore(sessionId) {
     if (scoreCount > 0) {
       session.overallScore = Math.round(totalScore / scoreCount);
       
-      // Set score label
       if (session.overallScore >= 90) {
         session.scoreLabel = 'Excellent';
       } else if (session.overallScore >= 75) {
@@ -190,7 +137,6 @@ async function calculateSessionScore(sessionId) {
       } else {
         session.scoreLabel = 'Needs Improvement';
       }
-      
       await session.save();
     }
   } catch (error) {
@@ -201,7 +147,7 @@ async function calculateSessionScore(sessionId) {
 // Get all sessions for a user
 exports.getUserSessions = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user._id;
     
     const sessions = await Session.find({ userId })
       .sort({ createdAt: -1 });
@@ -268,13 +214,9 @@ exports.getSessionSummary = async (req, res) => {
     }
     
     const sessionLogs = await SessionLog.find({ sessionId });
-    
-    // Calculate stats for each set
     const setStats = [];
+    
     for (const log of sessionLogs) {
-      const setNumber = log.setNumber;
-      
-      // Get unique feedback items
       const feedbackItems = {};
       log.logs.forEach(entry => {
         if (entry.feedback) {
@@ -282,13 +224,11 @@ exports.getSessionSummary = async (req, res) => {
         }
       });
       
-      // Sort feedback by frequency
       const commonFeedback = Object.entries(feedbackItems)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(item => item[0]);
       
-      // Calculate average score for this set
       let totalScore = 0;
       let scoreCount = 0;
       log.logs.forEach(entry => {
@@ -301,7 +241,7 @@ exports.getSessionSummary = async (req, res) => {
       const averageScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
       
       setStats.push({
-        setNumber,
+        setNumber: log.setNumber,
         repCount: log.repCount,
         averageScore,
         commonFeedback
@@ -329,13 +269,10 @@ exports.getSessionSummary = async (req, res) => {
   }
 };
 
-
-// Add these methods to your existing sessionController.js
-
 // Get user's previous sessions with summary info
 exports.getUserSessionHistory = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user._id;
     
     if (!userId) {
       return res.status(400).json({
@@ -344,27 +281,25 @@ exports.getUserSessionHistory = async (req, res) => {
       });
     }
 
-    // Find all sessions for this user
     const sessions = await Session.find({ userId })
-      .sort({ createdAt: -1 }) // Most recent first
-      .select('exerciseType startTime endTime completed overallScore scoreLabel totalSets completedSets');
+      .sort({ createdAt: -1 })
+      .select('exercise startTime endTime completed overallScore scoreLabel totalSets completedSets');
     
-    // Calculate duration and format session data
     const formattedSessions = sessions.map(session => {
       const startTime = new Date(session.startTime);
       let duration = null;
       
       if (session.endTime) {
         const endTime = new Date(session.endTime);
-        duration = Math.round((endTime - startTime) / 1000); // Duration in seconds
+        duration = Math.round((endTime - startTime) / 1000);
       }
       
       return {
         id: session._id,
-        exerciseType: session.exerciseType,
+        exercise: session.exercise,
         startTime: startTime,
         completed: session.completed,
-        duration: duration, // in seconds
+        duration: duration,
         score: session.overallScore || 0,
         scoreLabel: session.scoreLabel || 'Not Rated',
         progress: `${session.completedSets}/${session.totalSets} sets`
@@ -382,6 +317,36 @@ exports.getUserSessionHistory = async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+};
+
+// Add this middleware in sessionController.js
+exports.checkSessionOwnership = async (req, res, next) => {
+  try {
+    const session = await Session.findById(req.params.sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Session not found' 
+      });
+    }
+    
+    if (session.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Unauthorized access to session' 
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Ownership check error:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message 
     });
   }
 };

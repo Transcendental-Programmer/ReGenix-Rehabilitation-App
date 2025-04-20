@@ -11,7 +11,7 @@ import { POSE_CONNECTIONS } from "@mediapipe/pose";
 const jointMap = {
   "nose": 0,
   "left_eye_inner": 1,
-  "left_eye": 2, 
+  "left_eye": 2,
   "left_eye_outer": 3,
   "right_eye_inner": 4,
   "right_eye": 5,
@@ -66,6 +66,20 @@ interface FeedbackData {
   feedback?: string;
 }
 
+// Session data management interface
+interface SessionLog {
+  counter: number;
+  stage: string;
+  feedback: string;
+  feedbackFlags: string[];
+  repScore: number;
+  scoreLabel: string;
+  advancedMetrics: Record<string, number>;
+  affectedJoints: string[];
+  affectedSegments: [string, string][];
+  timestamp: Date;
+}
+
 const Exercise: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -84,7 +98,14 @@ const Exercise: React.FC = () => {
   // State for visibility and movement tracking
   const [visibilityStatus, setVisibilityStatus] = useState<string>("Checking...");
   const [movementStatus, setMovementStatus] = useState<string>("Checking...");
-  
+
+  // Session management
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const [isSendingLogs, setIsSendingLogs] = useState<boolean>(false);
+  const userId = localStorage.getItem("userId") || "guest"; // Get the user ID from localStorage or use "guest"
+  const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date());
+
   // Exercise Parameters
   const totalSets = 3;
   const repsGoal = 10;
@@ -92,13 +113,14 @@ const Exercise: React.FC = () => {
   const VISIBILITY_THRESHOLD = 0.5;
   const REQUIRED_VISIBLE_RATIO = 0.75;
   const CONTROLLED_MOVEMENT_THRESHOLD = 0.03;
-  
+
   // References for tracking
   const prevLandmarksRef = useRef<Landmark[]>([]);
   const setCompleteDialogShown = useRef<boolean>(false);
   const cameraRef = useRef<any>(null);
   const poseRef = useRef<any>(null);
   const startingLandmarksRef = useRef<Landmark[]>([]);
+  const repCountRef = useRef<number>(0); // Add ref to track repCount
 
   // Helper functions
   const getJointIndex = (jointName: string): number => {
@@ -111,7 +133,7 @@ const Exercise: React.FC = () => {
     tempCanvas.height = video.videoHeight || 1;
     const tempCtx = tempCanvas.getContext("2d");
     if (!tempCtx) return 0;
-    
+
     tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
     const { data } = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     let totalBrightness = 0;
@@ -122,11 +144,168 @@ const Exercise: React.FC = () => {
     return totalBrightness / (data.length / 4);
   };
 
+  // Add abort controller reference at the component level
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Create a new session when component mounts
+  useEffect(() => {
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const createSession = async () => {
+      try {
+        setSessionStartTime(new Date());
+
+        const exerciseConversion: { [key: string]: string } = {
+          'bicep_curl': 'bicep_curls',
+          'squat': 'squats',
+          'pushup': 'pushups',
+          'deadlift': 'deadlifts',
+          'lunge': 'lunges',
+          'situp': 'situps'
+        };
+
+        const normalizedExercise = exerciseName.toLowerCase().replace(/ /g, "_");
+        const exerciseType = exerciseConversion[normalizedExercise] || normalizedExercise;
+
+        const response = await fetch("http://localhost:5000/api/sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify({
+            userId,
+            exercise: exerciseType,
+            totalSets,
+            targetReps: repsGoal
+          }),
+          signal: abortController.signal // Add abort signal
+        });
+
+        if (!response.ok) throw new Error("Failed to create session");
+
+        const data = await response.json();
+        if (data.success && data.data._id && !abortController.signal.aborted) {
+          setSessionId(data.data._id);
+          console.log("Created session:", data.data._id);
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error("Error creating session:", error);
+        }
+      }
+    };
+
+    createSession();
+
+    // Cleanup function
+    return () => {
+      // Abort any pending request
+      abortControllerRef.current?.abort();
+
+      if (sessionId && sessionLogs.length > 0) {
+        saveLogs().then(() => {
+          completeSession();
+        });
+      }
+    };
+  }, [exerciseName]); // Keep exerciseName in dependency array
+
+  // Function to save session logs to the backend
+  const saveLogs = async (): Promise<void> => {
+    if (!sessionId || sessionLogs.length === 0 || isSendingLogs) {
+      return;
+    }
+
+    try {
+      setIsSendingLogs(true);
+
+      const response = await fetch(`http://localhost:5000/api/sessions/${sessionId}/logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          setNumber: currentSet,
+          repCount: repCountRef.current, // Use ref value for latest count
+          logs: sessionLogs
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save logs");
+      }
+
+      const data = await response.json();
+      console.log("Saved logs:", data);
+
+      // Clear logs after saving
+      setSessionLogs([]);
+    } catch (error) {
+      console.error("Error saving logs:", error);
+    } finally {
+      setIsSendingLogs(false);
+    }
+  };
+
+  // Function to mark session as complete
+  const completeSession = async (): Promise<void> => {
+    if (!sessionId) return;
+
+    try {
+      // Calculate duration in seconds
+      const endTime = new Date();
+      const duration = Math.round((endTime.getTime() - sessionStartTime.getTime()) / 1000);
+
+      // Calculate average form score
+      const allScores = sessionLogs.map(log => log.repScore).filter(score => !!score);
+      const accuracyScore = allScores.length > 0
+        ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+        : 0;
+
+      await fetch(`http://localhost:5000/api/sessions/${sessionId}/complete`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ duration, accuracyScore })
+      });
+    } catch (error) {
+      console.error("Error completing session:", error);
+    }
+  };
+
+  // Reset the exercise state
   const resetExerciseState = async (): Promise<void> => {
     try {
-      await fetch(`http://localhost:8000/reset/${exerciseName}`, { method: "POST" });
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+      }
+      
+      // Reset rep count and related state
       setRepCount(0);
+      repCountRef.current = 0;
+      setStage("N/A");
+      setFeedback("Starting new set...");
+      setLatestFeedback(null);
       startingLandmarksRef.current = [];
+      setCompleteDialogShown.current = false;
+      
+      // Restart camera after reset
+      if (videoRef.current && poseRef.current) {
+        const newCamera = new Camera(videoRef.current, {
+          onFrame: async () => {
+            await poseRef.current.send({ image: videoRef.current });
+          },
+          width: 640,
+          height: 480
+        });
+        newCamera.start();
+        cameraRef.current = newCamera;
+      }
     } catch (err) {
       console.error("Reset error:", err);
     }
@@ -170,7 +349,7 @@ const Exercise: React.FC = () => {
 
         console.log("Creating Pose instance");
         setFeedback("Initializing pose detection...");
-        
+
         const pose = new window.Pose({
           locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
@@ -196,14 +375,14 @@ const Exercise: React.FC = () => {
             const visibleLandmarks = results.poseLandmarks.filter(
               (landmark: Landmark) => landmark.visibility && landmark.visibility > VISIBILITY_THRESHOLD
             );
-            
+
             const visibilityRatio = visibleLandmarks.length / results.poseLandmarks.length;
             setVisibilityStatus(
-              visibilityRatio >= REQUIRED_VISIBLE_RATIO 
-                ? "Good" 
+              visibilityRatio >= REQUIRED_VISIBLE_RATIO
+                ? "Good"
                 : "Poor - Please ensure your full body is visible"
             );
-            
+
             // Check movement speed
             if (prevLandmarksRef.current.length > 0) {
               let totalMovement = 0;
@@ -212,19 +391,19 @@ const Exercise: React.FC = () => {
                 const prev = prevLandmarksRef.current[i];
                 if (curr && prev) {
                   totalMovement += Math.sqrt(
-                    Math.pow(curr.x - prev.x, 2) + 
+                    Math.pow(curr.x - prev.x, 2) +
                     Math.pow(curr.y - prev.y, 2)
                   );
                 }
               }
               const avgMovement = totalMovement / results.poseLandmarks.length;
-              
+
               setMovementStatus(
-                avgMovement <= CONTROLLED_MOVEMENT_THRESHOLD 
-                  ? "Good" 
+                avgMovement <= CONTROLLED_MOVEMENT_THRESHOLD
+                  ? "Good"
                   : "Too Fast - Please move more slowly for accurate tracking"
               );
-              
+
               // Skip processing if movement is too fast
               if (avgMovement > CONTROLLED_MOVEMENT_THRESHOLD) {
                 prevLandmarksRef.current = [...results.poseLandmarks];
@@ -232,10 +411,10 @@ const Exercise: React.FC = () => {
                 return;
               }
             }
-            
+
             // Store landmarks for next comparison
             prevLandmarksRef.current = [...results.poseLandmarks];
-            
+
             // Store starting landmarks for exercises that need it (like deadlifts)
             if (startingLandmarksRef.current.length === 0) {
               startingLandmarksRef.current = [...results.poseLandmarks];
@@ -244,7 +423,7 @@ const Exercise: React.FC = () => {
             // Draw connections first (bones)
             drawConnectors(currentCtx, results.poseLandmarks, POSE_CONNECTIONS, {
               color: "#00FF00",  // Default green color
-              lineWidth: 2 
+              lineWidth: 2
             });
 
             // Highlight problem segments if feedback available
@@ -280,8 +459,8 @@ const Exercise: React.FC = () => {
                     currentCtx.lineWidth = 2;
                     currentCtx.beginPath();
                     currentCtx.arc(
-                      landmark.x * canvas.width, 
-                      landmark.y * canvas.height, 
+                      landmark.x * canvas.width,
+                      landmark.y * canvas.height,
                       8,  // Larger radius for emphasis
                       0, 2 * Math.PI
                     );
@@ -293,7 +472,7 @@ const Exercise: React.FC = () => {
             }
 
             // Only send landmarks to backend if visibility is good
-            if (visibilityRatio >= REQUIRED_VISIBLE_RATIO) {
+            if (visibilityRatio >= REQUIRED_VISIBLE_RATIO && !setCompleteDialogShown.current) {
               fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -301,9 +480,18 @@ const Exercise: React.FC = () => {
               })
                 .then(res => res.json())
                 .then((data: FeedbackData) => {
-                  const currentReps = data.counter ?? data.repCount ?? 0;
+                  // Get current rep count value
+                  let currentReps = data.counter ?? data.repCount ?? 0;
                   
+                  // Enforce rep count limit (don't exceed repsGoal)
+                  if (currentReps > repsGoal) {
+                    currentReps = repsGoal;
+                  }
+                  
+                  // Update both state and ref
                   setRepCount(currentReps);
+                  repCountRef.current = currentReps;
+                  
                   setStage(data.repState ?? data.stage ?? "N/A");
                   setFeedback(data.feedback ?? "N/A");
                   setLatestFeedback({
@@ -315,21 +503,35 @@ const Exercise: React.FC = () => {
                     advanced_metrics: data.advanced_metrics ?? {}
                   });
 
-                  // Check if set is complete
+                  // Store logs for session tracking
+                  if (sessionId && data) {
+                    // Create session log entry
+                    const logEntry: SessionLog = {
+                      counter: currentReps,
+                      stage: data.repState ?? data.stage ?? "N/A",
+                      feedback: data.feedback ?? "N/A",
+                      feedbackFlags: data.feedback_flags ?? [],
+                      repScore: data.rep_score ?? 0,
+                      scoreLabel: data.score_label ?? "",
+                      advancedMetrics: data.advanced_metrics ?? {},
+                      affectedJoints: data.affected_joints ?? [],
+                      affectedSegments: data.affected_segments ?? [],
+                      timestamp: new Date()
+                    };
+
+                    // Update session logs using functional update
+                    setSessionLogs(prevLogs => {
+                      const newLogs = [...prevLogs, logEntry];
+                      return newLogs;
+                    });
+                  }
+
+                  // Check if set is complete when reps exactly meet goal
                   if (currentReps >= repsGoal && !setCompleteDialogShown.current) {
                     setCompleteDialogShown.current = true;
-
-                    setTimeout(() => {
-                      if (currentSet < totalSets) {
-                        alert(`Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`);
-                        setCurrentSet((prev) => prev + 1);
-                        resetExerciseState();
-                      } else {
-                        alert("Workout completed! Great job!");
-                        navigate("/");
-                      }
-                      setCompleteDialogShown.current = false;
-                    }, 100);
+                    
+                    // Handle set completion
+                    handleSetCompletion();
                   }
                 })
                 .catch(err => {
@@ -345,7 +547,7 @@ const Exercise: React.FC = () => {
         // Store pose reference
         poseRef.current = pose;
         console.log("Pose setup complete");
-        
+
         // Now setup the camera
         setupCamera();
       } catch (error) {
@@ -359,7 +561,7 @@ const Exercise: React.FC = () => {
       try {
         console.log("Setting up camera");
         setFeedback("Initializing camera...");
-        
+
         if (!video || !poseRef.current) {
           console.error("Video element or Pose not available");
           return;
@@ -385,12 +587,12 @@ const Exercise: React.FC = () => {
             // Only proceed if camera is ready and video dimensions are available
             if (video.videoWidth && video.videoHeight) {
               setCameraReady(true);
-              
+
               const brightness = getAverageBrightness(video);
               if (brightness < BRIGHTNESS_THRESHOLD) {
                 setLighting("Too Dark");
                 setFeedback("Lighting is too dark. Please improve your lighting.");
-                
+
                 const ctx = canvas.getContext("2d");
                 if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
               } else {
@@ -436,21 +638,63 @@ const Exercise: React.FC = () => {
           console.error("Error stopping camera:", error);
         }
       }
+
+      // Save any remaining logs
+      if (sessionId && sessionLogs.length > 0) {
+        saveLogs();
+      }
     };
-  }, [exerciseName, currentSet, navigate, repsGoal, totalSets]);
+  }, [exerciseName, navigate, repsGoal, totalSets]);
+
+  // Set up auto-saving of logs every 10 seconds
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      if (sessionId && sessionLogs.length > 0) {
+        saveLogs();
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(saveInterval);
+  }, [sessionId, sessionLogs]);
+
+  // Extracted set completion handler to its own function for clarity
+  const handleSetCompletion = async () => {
+    try {
+      await saveLogs();
+
+      if (currentSet < totalSets) {
+        alert(`Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`);
+        
+        // Update set number
+        setCurrentSet(prev => prev + 1);
+        
+        // Reset exercise state
+        await resetExerciseState();
+        
+        // Clear logs for the new set
+        setSessionLogs([]);
+      } else {
+        await completeSession();
+        alert("Workout completed! Great job!");
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Set completion error:", error);
+    }
+  };
 
   // Function to get exercise-specific metrics for display
   const getAdvancedMetrics = () => {
     if (!latestFeedback?.advanced_metrics) return null;
-    
+
     const metrics = latestFeedback.advanced_metrics;
     const metricRows = Object.entries(metrics).map(([key, value]) => (
       <p key={key} className="text-dark-300 flex justify-between items-center">
-        <span className="capitalize font-medium">{key.replace(/_/g, " ")}:</span> 
+        <span className="capitalize font-medium">{key.replace(/_/g, " ")}:</span>
         <span className="text-right font-mono">{value.toFixed(1)}</span>
       </p>
     ));
-    
+
     return metricRows.length > 0 ? (
       <div className="bg-dark-800 rounded-lg border border-dark-700 p-3 shadow-md">
         <h3 className="text-lg font-semibold text-primary-400 mb-2">Advanced Metrics</h3>
@@ -470,32 +714,43 @@ const Exercise: React.FC = () => {
               {exerciseName ? exerciseName.replace("_", " ").toUpperCase() : "Exercise"}
             </span>
           </h1>
-          <button 
+          <button
             className="flex items-center gap-2 px-3 py-1 rounded-md bg-dark-800 hover:bg-dark-700 transition-colors duration-200 text-dark-200"
-            onClick={() => navigate("/")}
+            onClick={() => {
+              // Save any remaining logs before navigating away
+              if (sessionId && sessionLogs.length > 0) {
+                saveLogs().then(() => {
+                  completeSession().then(() => {
+                    navigate("/");
+                  });
+                });
+              } else {
+                navigate("/");
+              }
+            }}
           >
             <ArrowLeft size={16} />
             <span>Back to Home</span>
           </button>
         </div>
       </header>
-      
+
       <main className="container mx-auto px-4 py-3">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Left side - Video */}
           <div className="lg:w-2/3">
             <div className="relative bg-dark-800 rounded-lg border border-dark-700 overflow-hidden shadow-lg">
-              <video 
-                ref={videoRef} 
-                className="hidden" 
-                playsInline 
-                autoPlay 
+              <video
+                ref={videoRef}
+                className="hidden"
+                playsInline
+                autoPlay
                 muted
               />
-              <canvas 
-                ref={canvasRef} 
-                width={640} 
-                height={480} 
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={480}
                 className="w-full object-cover"
                 style={{ aspectRatio: "4/3" }}
               />
@@ -509,7 +764,7 @@ const Exercise: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {/* Right side - Stats and Controls */}
           <div className="lg:w-1/3 space-y-3">
             {/* Exercise Progress - Top stats */}
@@ -527,13 +782,13 @@ const Exercise: React.FC = () => {
                 <div className="text-xs text-dark-300 text-center">{repCount} of {repsGoal} reps completed</div>
               </div>
             </div>
-            
+
             {/* Feedback Box */}
             <div className="bg-dark-800 rounded-lg border border-dark-700 p-3 shadow-md">
               <h3 className="text-lg font-semibold text-primary-400 mb-1">Feedback</h3>
               <p className="text-dark-200 text-sm">{feedback}</p>
             </div>
-            
+
             {/* Status Grid - Now in a grid of 4 instead of 2x2 */}
             <div className="grid grid-cols-4 gap-2">
               <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
@@ -554,7 +809,7 @@ const Exercise: React.FC = () => {
                   {movementStatus.includes("Good") ? "Good" : "Too Fast"}
                 </p>
               </div>
-              
+
               {latestFeedback?.rep_score ? (
                 <div className="bg-dark-800 rounded-lg border border-dark-700 p-2">
                   <h3 className="text-xs font-medium text-dark-300">Form Score</h3>
@@ -569,7 +824,23 @@ const Exercise: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
+            {/* Session Status */}
+            {sessionId && (
+              <div className="bg-dark-800 rounded-lg border border-primary-700/30 p-3 shadow-md">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-primary-400 mb-1">Session Status</h3>
+                  {isSendingLogs && (
+                    <div className="animate-pulse w-4 h-4 rounded-full bg-primary-400"></div>
+                  )}
+                </div>
+                <div className="text-dark-300 text-sm">
+                  <p>Session ID: <span className="font-mono text-xs text-dark-400">{sessionId.substring(0, 8)}...</span></p>
+                  <p>Collected data points: {sessionLogs.length}</p>
+                </div>
+              </div>
+            )}
+
             {/* Advanced Metrics */}
             {getAdvancedMetrics()}
           </div>
