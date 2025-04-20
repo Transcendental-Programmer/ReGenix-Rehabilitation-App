@@ -164,7 +164,7 @@ const Record: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Session History</h1>
           <p className="text-dark-300">
-            Track your rehabilitation progress over time
+            Track your training progress over time
           </p>
         </div>
       </div>

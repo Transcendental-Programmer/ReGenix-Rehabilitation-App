@@ -52,8 +52,8 @@ const ExerciseCatalog: React.FC = () => {
       duration: 8,
       intensity: 'Medium',
       targetArea: 'Abdominals',
-      videoUrl: '/../../assets/male-Bodyweight-push-up-front.mp4',
-      demoVideos: ['/videos/sit-ups-front.mp4', '/videos/sit-ups-side.mp4']
+      videoUrl: '/../../assets/male-Bodyweight-situp-front.mp4',
+      demoVideos: ['/../../assets/male-Bodyweight-situp-front.mp4', '/../../assets/male-Bodyweight-situp-side.mp4']
     },
     {
       id: 'ex-3',
