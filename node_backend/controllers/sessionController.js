@@ -270,6 +270,7 @@ exports.getSessionSummary = async (req, res) => {
 };
 
 // Get user's previous sessions with summary info
+// Get user's previous sessions with summary info
 exports.getUserSessionHistory = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -281,7 +282,18 @@ exports.getUserSessionHistory = async (req, res) => {
       });
     }
 
-    const sessions = await Session.find({ userId })
+    // Find and delete incomplete sessions with 0 completed sets
+    await Session.deleteMany({ 
+      userId, 
+      completed: false, 
+      completedSets: 0 
+    });
+
+    // Now retrieve only completed sessions
+    const sessions = await Session.find({ 
+      userId,
+      completed: true
+    })
       .sort({ createdAt: -1 })
       .select('exercise startTime endTime completed overallScore scoreLabel totalSets completedSets');
     
