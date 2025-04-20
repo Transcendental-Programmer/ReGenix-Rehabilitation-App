@@ -34,7 +34,7 @@ const Navbar: React.FC = () => {
             <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full p-1">
               <BarChart2 size={24} className="text-dark-950" />
             </div>
-            <span className="text-xl font-bold text-white">RehabPro</span>
+            <span className="text-xl font-bold text-white">PosturePro</span>
           </Link>
 
           {/* Desktop Navigation */}

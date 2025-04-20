@@ -188,10 +188,10 @@ const ExerciseCatalog: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${exercise.intensity === 'Low'
-                        ? 'bg-success-900/30 text-success-400'
-                        : exercise.intensity === 'Medium'
-                          ? 'bg-warning-900/30 text-warning-400'
-                          : 'bg-error-900/30 text-error-400'
+                      ? 'bg-success-900/30 text-success-400'
+                      : exercise.intensity === 'Medium'
+                        ? 'bg-warning-900/30 text-warning-400'
+                        : 'bg-error-900/30 text-error-400'
                       }`}
                   >
                     {exercise.intensity}
@@ -295,10 +295,10 @@ const ExerciseCatalog: React.FC = () => {
             </div>
 
             <div className="pt-4">
-              <Button 
-                variant="primary" 
-                className="w-full" 
-                icon={<Play />} 
+              <Button
+                variant="primary"
+                className="w-full"
+                icon={<Play />}
                 iconPosition="left"
                 onClick={() => {
                   setModalOpen(false);
