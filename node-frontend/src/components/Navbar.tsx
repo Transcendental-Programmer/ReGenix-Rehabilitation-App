@@ -19,8 +19,8 @@ const Navbar: React.FC = () => {
     ...(isAuthenticated
       ? [
           { name: 'Dashboard', path: '/dashboard', icon: <BarChart2 size={20} /> },
-          { name: 'Planner', path: '/planner', icon: <Calendar size={20} /> },
-          { name: 'Record', path: '/record', icon: <ClipboardList size={20} /> },
+          { name: 'Exercises', path: '/planner', icon: <Calendar size={20} /> },
+          { name: 'History', path: '/record', icon: <ClipboardList size={20} /> },
           { name: 'Profile', path: '/profile', icon: <User size={20} /> },
         ]
       : []),

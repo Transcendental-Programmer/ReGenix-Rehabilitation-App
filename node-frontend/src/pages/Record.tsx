@@ -4,6 +4,7 @@ import Card, { CardContent, CardHeader } from '../components/Card';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import api from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface SessionRecord {
   id: string;
@@ -31,20 +32,21 @@ const Record: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'thisWeek' | 'lastMonth'>('all');
-  const [sessionDetails, setSessionDetails] = useState<{[key: string]: any}>({});
+  const [sessionDetails, setSessionDetails] = useState<{ [key: string]: any }>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSessionLogs = async () => {
       try {
         setLoading(true);
         const response = await api.get('/api/sessions/history');
-        
+
         if (response.data && response.data.success) {
           setSessions(response.data.data);
         } else {
           throw new Error('Invalid response format');
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch session logs:', err);
@@ -61,18 +63,18 @@ const Record: React.FC = () => {
       setExpandedSession(null);
     } else {
       setExpandedSession(sessionId);
-      
+
       // Only fetch details if we don't have them already
       if (!sessionDetails[sessionId]) {
         try {
           const response = await api.get(`/api/sessions/${sessionId}/summary`);
-          
+
           if (response.data && response.data.success) {
             // Transform the data to match our component's expected format
             const details = {
-              exercises: response.data.data.session.exercise ? 
-                [{ 
-                  name: response.data.data.session.exercise, 
+              exercises: response.data.data.session.exercise ?
+                [{
+                  name: response.data.data.session.exercise,
                   completed: response.data.data.session.completed,
                   accuracy: response.data.data.overallScore
                 }] : [],
@@ -80,7 +82,7 @@ const Record: React.FC = () => {
               painLevel: response.data.data.session.painLevel || undefined,
               setStats: response.data.data.setStats || []
             };
-            
+
             setSessionDetails(prevDetails => ({
               ...prevDetails,
               [sessionId]: details
@@ -100,9 +102,9 @@ const Record: React.FC = () => {
 
   const filterSessions = () => {
     if (!sessions.length) return [];
-    
+
     let filteredSessions = [...sessions];
-    
+
     // Apply date filter
     if (filter === 'thisWeek') {
       const oneWeekAgo = new Date();
@@ -117,17 +119,17 @@ const Record: React.FC = () => {
         session => new Date(session.startTime) >= oneMonthAgo
       );
     }
-    
+
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filteredSessions = filteredSessions.filter(session => 
+      filteredSessions = filteredSessions.filter(session =>
         session.exercise.toLowerCase().includes(term) ||
-        (sessionDetails[session.id]?.notes && 
-         sessionDetails[session.id].notes.toLowerCase().includes(term))
+        (sessionDetails[session.id]?.notes &&
+          sessionDetails[session.id].notes.toLowerCase().includes(term))
       );
     }
-    
+
     return filteredSessions;
   };
 
@@ -146,11 +148,11 @@ const Record: React.FC = () => {
   // Format duration properly based on length
   const formatDuration = (durationInSeconds: number | null): string => {
     if (durationInSeconds === null) return 'In progress';
-    
+
     const hours = Math.floor(durationInSeconds / 3600);
     const minutes = Math.floor((durationInSeconds % 3600) / 60);
     const seconds = durationInSeconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
     } else if (minutes > 0) {
@@ -208,7 +210,7 @@ const Record: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <div>
           <select
             className="input bg-dark-800 appearance-none pr-10"
@@ -239,7 +241,7 @@ const Record: React.FC = () => {
         <div className="space-y-4">
           {filteredSessions.map((session) => (
             <Card key={session.id} className="overflow-visible">
-              <div 
+              <div
                 className="p-4 cursor-pointer"
                 onClick={() => toggleExpand(session.id)}
               >
@@ -248,14 +250,14 @@ const Record: React.FC = () => {
                     <Calendar size={18} className="text-primary-400 mr-2 mt-1 flex-shrink-0" />
                     <div className="w-full">
                       <div className="flex flex-col md:flex-row md:items-center md:gap-4">
-                        <h3 className="font-medium text-base">
+                        <h3 className="font-medium te">
                           {new Date(session.startTime).toLocaleDateString('en-US', {
                             weekday: 'long',
                             month: 'long',
                             day: 'numeric'
                           })}
                         </h3>
-                        <h3 className="font-bold text-base text-primary-400">{session.exercise}</h3>
+                        <h3 className="font-bold">{session.exercise}</h3>
                       </div>
                       <div className="flex items-center mt-1 text-sm text-dark-300">
                         <Clock size={14} className="mr-1" />
@@ -263,28 +265,27 @@ const Record: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 mt-2 md:mt-0">
                     <div className="text-right">
                       <div className="text-sm text-dark-300">Completion</div>
                       <div className="font-medium">{calculateCompletionRate(session)}%</div>
                     </div>
-                    
+
                     <div className="text-right">
                       <div className="text-sm text-dark-300">Score</div>
                       <div className="font-medium">{session.score}%</div>
                     </div>
-                    
-                    <ChevronDown 
-                      size={20} 
-                      className={`transform transition-transform duration-200 ${
-                        expandedSession === session.id ? 'rotate-180' : ''
-                      }`} 
+
+                    <ChevronDown
+                      size={20}
+                      className={`transform transition-transform duration-200 ${expandedSession === session.id ? 'rotate-180' : ''
+                        }`}
                     />
                   </div>
                 </div>
               </div>
-              
+
               {expandedSession === session.id && (
                 <div className="px-4 pb-4 pt-2 border-t border-dark-700">
                   {sessionDetails[session.id] ? (
@@ -312,37 +313,37 @@ const Record: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          
-                          {sessionDetails[session.id].setStats && 
-                           sessionDetails[session.id].setStats.length > 0 && (
-                            <>
-                              <h4 className="font-medium mb-3">Sets</h4>
-                              <div className="space-y-3">
-                                {sessionDetails[session.id].setStats.map((set, i) => (
-                                  <div key={i} className="p-3 bg-dark-700 rounded-md">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="font-medium">Set {set.setNumber}</span>
-                                      <span className="text-sm text-dark-300">{set.repCount} reps</span>
+
+                          {sessionDetails[session.id].setStats &&
+                            sessionDetails[session.id].setStats.length > 0 && (
+                              <>
+                                <h4 className="font-medium mb-3">Sets</h4>
+                                <div className="space-y-3">
+                                  {sessionDetails[session.id].setStats.map((set, i) => (
+                                    <div key={i} className="p-3 bg-dark-700 rounded-md">
+                                      <div className="flex justify-between items-center mb-2">
+                                        <span className="font-medium">Set {set.setNumber}</span>
+                                        <span className="text-sm text-dark-300">{set.repCount} reps</span>
+                                      </div>
+                                      {set.averageScore > 0 && (
+                                        <div className="mb-2">
+                                          <span className="text-sm text-dark-300">Average Score: </span>
+                                          <span>{set.averageScore}%</span>
+                                        </div>
+                                      )}
+                                      {set.commonFeedback && set.commonFeedback.length > 0 && (
+                                        <div>
+                                          <span className="text-sm text-dark-300">Common feedback: </span>
+                                          <span>{set.commonFeedback.join(', ')}</span>
+                                        </div>
+                                      )}
                                     </div>
-                                    {set.averageScore > 0 && (
-                                      <div className="mb-2">
-                                        <span className="text-sm text-dark-300">Average Score: </span>
-                                        <span>{set.averageScore}%</span>
-                                      </div>
-                                    )}
-                                    {set.commonFeedback && set.commonFeedback.length > 0 && (
-                                      <div>
-                                        <span className="text-sm text-dark-300">Common feedback: </span>
-                                        <span>{set.commonFeedback.join(', ')}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          )}
+                                  ))}
+                                </div>
+                              </>
+                            )}
                         </div>
-                        
+
                         <div>
                           {sessionDetails[session.id].painLevel !== undefined && (
                             <div className="mb-4">
@@ -352,17 +353,16 @@ const Record: React.FC = () => {
                                   <Star
                                     key={level}
                                     size={20}
-                                    className={`${
-                                      level <= sessionDetails[session.id].painLevel! 
-                                        ? 'text-warning-500 fill-warning-500' 
+                                    className={`${level <= sessionDetails[session.id].painLevel!
+                                        ? 'text-warning-500 fill-warning-500'
                                         : 'text-dark-600'
-                                    } mr-1`}
+                                      } mr-1`}
                                   />
                                 ))}
                               </div>
                             </div>
                           )}
-                          
+
                           {sessionDetails[session.id].notes && (
                             <div>
                               <h4 className="font-medium mb-2">Notes</h4>
@@ -371,16 +371,16 @@ const Record: React.FC = () => {
                               </div>
                             </div>
                           )}
-                          
-                          <div className="flex md:justify-end mt-4">
-                            <Button 
-                              variant="outline" 
+
+                          {/* <div className="flex md:justify-end mt-4">
+                            <Button
+                              variant="outline"
                               size="sm"
-                              onClick={() => window.location.href = `/sessions/${session.id}`}
+                              onClick={() => navigate(`/sessions/${session.id}`)}
                             >
                               View Full Details
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     )
