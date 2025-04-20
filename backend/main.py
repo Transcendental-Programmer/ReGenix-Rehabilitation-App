@@ -58,15 +58,15 @@ async def process_exercise_landmarks(
         if exercise_name == "bicep_curls":
             result = process_bicep_curls(landmarks, tolerance, session_id)
         elif exercise_name == "deadlifts":
-            result = process_deadlifts(landmarks, tolerance)
+            result = process_deadlifts(landmarks, tolerance, session_id)
         elif exercise_name == "lunges":
-            result = process_lunges(landmarks, tolerance)
+            result = process_lunges(landmarks, tolerance, session_id)
         elif exercise_name == "pushups":
-            result = process_pushups(landmarks, tolerance)
+            result = process_pushups(landmarks, tolerance, session_id)
         elif exercise_name == "situps":
-            result = process_situps(landmarks, tolerance)
+            result = process_situps(landmarks, tolerance, session_id)
         elif exercise_name == "squats":
-            result = process_squats(landmarks, tolerance)
+            result = process_squats(landmarks, tolerance, session_id)
         else:
             return JSONResponse({"error": "Exercise not found"}, status_code=404)
         

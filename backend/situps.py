@@ -1,6 +1,7 @@
 import numpy as np
 from state import exercise_state
 from feedback_config import SITUP_CONFIG
+from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
     a, b, c = np.array(a), np.array(b), np.array(c)
@@ -22,7 +23,7 @@ def check_neck_strain(nose, neck, shoulder):
     # If neck is too flexed (looking down too much), it might indicate strain
     return neck_angle < 150
 
-def process_landmarks(landmarks, tolerance):
+def process_landmarks(landmarks, tolerance, session_id=None):
     """
     Process landmarks for situp form analysis with enhanced feedback
     """
@@ -97,15 +98,34 @@ def process_landmarks(landmarks, tolerance):
     if not feedback:
         feedback = [SITUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
 
+    # Calculate rep score
+    rep_score, score_label = calculate_rep_score("situps", feedback)
+    
     # Compile the feedback into a string
     feedback_message = " | ".join(feedback)
+    
+    # Log the rep if this is a new rep and we have a session ID
+    if counter > state.get("counter", 0) and session_id:
+        try:
+            from session_state import record_rep
+            metrics = {
+                "hip_angle": avg_hip_angle,
+                "neck_strain": neck_strain_detected
+            }
+            record_rep(session_id, "situps", feedback, metrics)
+        except ImportError:
+            # Session state module not available, continue without logging
+            pass
 
     new_state = {
         "counter": counter,
         "stage": stage,
         "hipAngle": avg_hip_angle,
         "neckStrain": neck_strain_detected,
-        "feedback": feedback_message
+        "feedback": feedback_message,
+        "rep_score": rep_score,
+        "score_label": score_label,
+        "feedback_flags": feedback
     }
     
     exercise_state["situps"] = new_state

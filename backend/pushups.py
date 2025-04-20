@@ -2,6 +2,7 @@ import numpy as np
 import mediapipe as mp
 from state import exercise_state
 from feedback_config import PUSHUP_CONFIG
+from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
     a = np.array(a)  # First point (shoulder)
@@ -37,7 +38,7 @@ def check_body_alignment(shoulder, hip, ankle):
 # Setup MediaPipe Pose for landmark indexing
 mp_pose = mp.solutions.pose
 
-def process_landmarks(landmarks, tolerance):
+def process_landmarks(landmarks, tolerance, session_id=None):
     """
     Process landmarks for pushup form analysis with enhanced feedback
     """
@@ -114,15 +115,34 @@ def process_landmarks(landmarks, tolerance):
     if not feedback:
         feedback = [PUSHUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
 
+    # Calculate rep score
+    rep_score, score_label = calculate_rep_score("pushups", feedback)
+
     # Compile the feedback into a string
     feedback_message = " | ".join(feedback)
+    
+    # Log the rep if this is a new rep and we have a session ID
+    if counter > state.get("counter", 0) and session_id:
+        try:
+            from session_state import record_rep
+            metrics = {
+                "elbow_angle": avg_elbow_angle,
+                "alignment_score": alignment_score
+            }
+            record_rep(session_id, "pushups", feedback, metrics)
+        except ImportError:
+            # Session state module not available, continue without logging
+            pass
     
     new_state = {
         "counter": counter,
         "stage": stage,
         "elbowAngle": avg_elbow_angle,
         "alignmentScore": alignment_score,
-        "feedback": feedback_message
+        "feedback": feedback_message,
+        "rep_score": rep_score,
+        "score_label": score_label,
+        "feedback_flags": feedback
     }
     
     exercise_state["pushups"] = new_state
