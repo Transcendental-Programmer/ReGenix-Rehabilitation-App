@@ -13,6 +13,8 @@ import Record from './pages/Record';
 import Profile from './pages/Profile';
 import Report from './pages/Report';
 import Exercise from './pages/Exercise';
+// import Sessions from './pages/Sessions'; 
+import SessionSummary from './pages/SessionSummary';
 
 const App: React.FC = () => {
   return (
@@ -32,6 +34,8 @@ const App: React.FC = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/report" element={<Report />} />
               <Route path="/exercise" element={<Exercise />} />
+              {/* <Route path="/sessions" element={<Sessions />} /> */}
+              <Route path="/sessions/:sessionId" element={<SessionSummary />} />
               
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
