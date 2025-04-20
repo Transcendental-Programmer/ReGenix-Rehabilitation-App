@@ -7,9 +7,15 @@ import api from '../services/api';
 
 interface SessionRecord {
   id: string;
-  date: string;
-  duration: number;
-  exercises: {
+  exercise: string;
+  startTime: string;
+  completed: boolean;
+  duration: number | null;
+  score: number;
+  scoreLabel: string;
+  progress: string;
+  // Additional fields from session details API
+  exercises?: {
     name: string;
     completed: boolean;
     accuracy?: number;
@@ -25,49 +31,20 @@ const Record: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'thisWeek' | 'lastMonth'>('all');
+  const [sessionDetails, setSessionDetails] = useState<{[key: string]: any}>({});
 
   useEffect(() => {
     const fetchSessionLogs = async () => {
       try {
-        // Replace with actual API call
-        // const response = await api.get('/api/session/logs');
-        // setSessions(response.data);
+        setLoading(true);
+        const response = await api.get('/api/sessions/history');
         
-        // Mock data for demonstration
-        const mockSessions: SessionRecord[] = [];
-        
-        // Generate 10 mock sessions with varying dates
-        for (let i = 0; i < 10; i++) {
-          const date = new Date();
-          date.setDate(date.getDate() - i * 3); // Every 3 days back
-          
-          mockSessions.push({
-            id: `session-${i}`,
-            date: date.toISOString(),
-            duration: 25 + Math.floor(Math.random() * 20), // 25-45 minutes
-            exercises: [
-              {
-                name: 'Shoulder External Rotation',
-                completed: true,
-                accuracy: 85 + Math.floor(Math.random() * 15) // 85-100%
-              },
-              {
-                name: 'Wall Slides',
-                completed: true,
-                accuracy: 80 + Math.floor(Math.random() * 20) // 80-100%
-              },
-              {
-                name: i % 4 === 0 ? 'Pendulum Exercise' : 'Diagonal Pattern D2 Flexion',
-                completed: i % 5 !== 0, // Some incomplete
-                accuracy: i % 5 !== 0 ? 75 + Math.floor(Math.random() * 20) : undefined // 75-95%
-              }
-            ],
-            notes: i % 3 === 0 ? 'Felt some discomfort during the last exercise. Will reduce intensity next time.' : undefined,
-            painLevel: i % 2 === 0 ? 1 + Math.floor(Math.random() * 3) : undefined // 1-3 pain level
-          });
+        if (response.data && response.data.success) {
+          setSessions(response.data.data);
+        } else {
+          throw new Error('Invalid response format');
         }
         
-        setSessions(mockSessions);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch session logs:', err);
@@ -79,11 +56,45 @@ const Record: React.FC = () => {
     fetchSessionLogs();
   }, []);
 
-  const toggleExpand = (sessionId: string) => {
+  const toggleExpand = async (sessionId: string) => {
     if (expandedSession === sessionId) {
       setExpandedSession(null);
     } else {
       setExpandedSession(sessionId);
+      
+      // Only fetch details if we don't have them already
+      if (!sessionDetails[sessionId]) {
+        try {
+          const response = await api.get(`/api/sessions/${sessionId}/summary`);
+          
+          if (response.data && response.data.success) {
+            // Transform the data to match our component's expected format
+            const details = {
+              exercises: response.data.data.session.exercise ? 
+                [{ 
+                  name: response.data.data.session.exercise, 
+                  completed: response.data.data.session.completed,
+                  accuracy: response.data.data.overallScore
+                }] : [],
+              notes: response.data.data.session.notes || '',
+              painLevel: response.data.data.session.painLevel || undefined,
+              setStats: response.data.data.setStats || []
+            };
+            
+            setSessionDetails(prevDetails => ({
+              ...prevDetails,
+              [sessionId]: details
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch session details:', err);
+          // Show a smaller error within the expanded section
+          setSessionDetails(prevDetails => ({
+            ...prevDetails,
+            [sessionId]: { error: 'Failed to load details' }
+          }));
+        }
+      }
     }
   };
 
@@ -97,13 +108,13 @@ const Record: React.FC = () => {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       filteredSessions = filteredSessions.filter(
-        session => new Date(session.date) >= oneWeekAgo
+        session => new Date(session.startTime) >= oneWeekAgo
       );
     } else if (filter === 'lastMonth') {
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
       filteredSessions = filteredSessions.filter(
-        session => new Date(session.date) >= oneMonthAgo
+        session => new Date(session.startTime) >= oneMonthAgo
       );
     }
     
@@ -111,8 +122,9 @@ const Record: React.FC = () => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filteredSessions = filteredSessions.filter(session => 
-        session.exercises.some(ex => ex.name.toLowerCase().includes(term)) ||
-        (session.notes && session.notes.toLowerCase().includes(term))
+        session.exercise.toLowerCase().includes(term) ||
+        (sessionDetails[session.id]?.notes && 
+         sessionDetails[session.id].notes.toLowerCase().includes(term))
       );
     }
     
@@ -120,19 +132,32 @@ const Record: React.FC = () => {
   };
 
   const calculateCompletionRate = (session: SessionRecord) => {
-    const completed = session.exercises.filter(ex => ex.completed).length;
-    return Math.round((completed / session.exercises.length) * 100);
+    if (session.progress) {
+      const [completed, total] = session.progress.split('/');
+      const completedNum = parseInt(completed);
+      const totalNum = parseInt(total);
+      if (!isNaN(completedNum) && !isNaN(totalNum) && totalNum > 0) {
+        return Math.round((completedNum / totalNum) * 100);
+      }
+    }
+    return session.completed ? 100 : 0;
   };
 
-  const calculateAverageAccuracy = (session: SessionRecord) => {
-    const accuracies = session.exercises
-      .filter(ex => ex.completed && ex.accuracy !== undefined)
-      .map(ex => ex.accuracy as number);
+  // Format duration properly based on length
+  const formatDuration = (durationInSeconds: number | null): string => {
+    if (durationInSeconds === null) return 'In progress';
     
-    if (!accuracies.length) return 'N/A';
+    const hours = Math.floor(durationInSeconds / 3600);
+    const minutes = Math.floor((durationInSeconds % 3600) / 60);
+    const seconds = durationInSeconds % 60;
     
-    const average = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
-    return `${Math.round(average)}%`;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
   };
 
   if (loading) {
@@ -218,33 +243,36 @@ const Record: React.FC = () => {
                 className="p-4 cursor-pointer"
                 onClick={() => toggleExpand(session.id)}
               >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center">
-                      <Calendar size={18} className="text-primary-400 mr-2" />
-                      <h3 className="font-medium">
-                        {new Date(session.date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </h3>
-                    </div>
-                    <div className="flex items-center mt-1 text-sm text-dark-300">
-                      <Clock size={14} className="mr-1" />
-                      <span>{session.duration} minutes</span>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                  <div className="flex items-start flex-1">
+                    <Calendar size={18} className="text-primary-400 mr-2 mt-1 flex-shrink-0" />
+                    <div className="w-full">
+                      <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                        <h3 className="font-medium text-base">
+                          {new Date(session.startTime).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </h3>
+                        <h3 className="font-bold text-base text-primary-400">{session.exercise}</h3>
+                      </div>
+                      <div className="flex items-center mt-1 text-sm text-dark-300">
+                        <Clock size={14} className="mr-1" />
+                        <span>{formatDuration(session.duration)}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
-                    <div className="text-right hidden md:block">
+                  <div className="flex items-center gap-4 mt-2 md:mt-0">
+                    <div className="text-right">
                       <div className="text-sm text-dark-300">Completion</div>
                       <div className="font-medium">{calculateCompletionRate(session)}%</div>
                     </div>
                     
-                    <div className="text-right hidden md:block">
-                      <div className="text-sm text-dark-300">Accuracy</div>
-                      <div className="font-medium">{calculateAverageAccuracy(session)}</div>
+                    <div className="text-right">
+                      <div className="text-sm text-dark-300">Score</div>
+                      <div className="font-medium">{session.score}%</div>
                     </div>
                     
                     <ChevronDown 
@@ -259,64 +287,108 @@ const Record: React.FC = () => {
               
               {expandedSession === session.id && (
                 <div className="px-4 pb-4 pt-2 border-t border-dark-700">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-medium mb-3">Exercises</h4>
-                      <div className="space-y-3">
-                        {session.exercises.map((exercise, i) => (
-                          <div key={i} className="flex justify-between items-center p-3 bg-dark-700 rounded-md">
-                            <div className="flex items-center">
-                              {exercise.completed ? (
-                                <Check size={16} className="text-success-500 mr-3" />
-                              ) : (
-                                <div className="w-4 h-4 rounded-full border border-dark-400 mr-3" />
-                              )}
-                              <span>{exercise.name}</span>
-                            </div>
-                            {exercise.accuracy && (
-                              <span className="text-dark-200">{exercise.accuracy}%</span>
-                            )}
-                          </div>
-                        ))}
+                  {sessionDetails[session.id] ? (
+                    sessionDetails[session.id].error ? (
+                      <div className="text-error-400 text-center py-4">
+                        {sessionDetails[session.id].error}
                       </div>
-                    </div>
-                    
-                    <div>
-                      {session.painLevel !== undefined && (
-                        <div className="mb-4">
-                          <h4 className="font-medium mb-2">Pain Level</h4>
-                          <div className="flex items-center">
-                            {[1, 2, 3, 4, 5].map((level) => (
-                              <Star
-                                key={level}
-                                size={20}
-                                className={`${
-                                  level <= session.painLevel! 
-                                    ? 'text-warning-500 fill-warning-500' 
-                                    : 'text-dark-600'
-                                } mr-1`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {session.notes && (
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h4 className="font-medium mb-2">Notes</h4>
-                          <div className="p-3 bg-dark-700 rounded-md">
-                            <p className="text-dark-200">{session.notes}</p>
+                          <h4 className="font-medium mb-3">Exercise Details</h4>
+                          <div className="p-3 bg-dark-700 rounded-md mb-4">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center">
+                                {session.completed ? (
+                                  <Check size={16} className="text-success-500 mr-3" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border border-dark-400 mr-3" />
+                                )}
+                                <span>{session.exercise}</span>
+                              </div>
+                              <div>
+                                <span className="text-dark-300 mr-1">Score:</span>
+                                <span className="text-dark-200">{session.score}%</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {sessionDetails[session.id].setStats && 
+                           sessionDetails[session.id].setStats.length > 0 && (
+                            <>
+                              <h4 className="font-medium mb-3">Sets</h4>
+                              <div className="space-y-3">
+                                {sessionDetails[session.id].setStats.map((set, i) => (
+                                  <div key={i} className="p-3 bg-dark-700 rounded-md">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-medium">Set {set.setNumber}</span>
+                                      <span className="text-sm text-dark-300">{set.repCount} reps</span>
+                                    </div>
+                                    {set.averageScore > 0 && (
+                                      <div className="mb-2">
+                                        <span className="text-sm text-dark-300">Average Score: </span>
+                                        <span>{set.averageScore}%</span>
+                                      </div>
+                                    )}
+                                    {set.commonFeedback && set.commonFeedback.length > 0 && (
+                                      <div>
+                                        <span className="text-sm text-dark-300">Common feedback: </span>
+                                        <span>{set.commonFeedback.join(', ')}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div>
+                          {sessionDetails[session.id].painLevel !== undefined && (
+                            <div className="mb-4">
+                              <h4 className="font-medium mb-2">Pain Level</h4>
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((level) => (
+                                  <Star
+                                    key={level}
+                                    size={20}
+                                    className={`${
+                                      level <= sessionDetails[session.id].painLevel! 
+                                        ? 'text-warning-500 fill-warning-500' 
+                                        : 'text-dark-600'
+                                    } mr-1`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {sessionDetails[session.id].notes && (
+                            <div>
+                              <h4 className="font-medium mb-2">Notes</h4>
+                              <div className="p-3 bg-dark-700 rounded-md">
+                                <p className="text-dark-200">{sessionDetails[session.id].notes}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="flex md:justify-end mt-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => window.location.href = `/sessions/${session.id}`}
+                            >
+                              View Full Details
+                            </Button>
                           </div>
                         </div>
-                      )}
-                      
-                      <div className="flex md:justify-end mt-4">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
                       </div>
+                    )
+                  ) : (
+                    <div className="py-8 flex justify-center">
+                      <LoadingSpinner size="md" />
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </Card>
