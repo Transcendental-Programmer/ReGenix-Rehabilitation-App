@@ -535,7 +535,7 @@ const Dashboard: React.FC = () => {
             Welcome back, {(user?.name || 'User').toUpperCase()}
           </h1>
           <p className="text-dark-300">
-            Keep up with your rehabilitation progress!
+            Keep up with your training progress!
           </p>
         </div>
         <div>
