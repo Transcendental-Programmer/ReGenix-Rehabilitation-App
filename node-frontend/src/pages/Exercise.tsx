@@ -549,6 +549,10 @@ useEffect(() => {
                 .then(res => res.json())
                 // Inside the onResults callback where feedback data is processed
                 .then((data: FeedbackData) => {
+                  if (setCompleteDialogShown.current) {
+                    console.log("Ignoring pose data during set transition");
+                    return; // Skip processing during reset
+                  }
                   // Get current rep count value
                   let currentReps = data.counter ?? data.repCount ?? 0;
 
@@ -753,46 +757,81 @@ useEffect(() => {
 
   // Extracted set completion handler to its own function for clarity
   // Replaces your existing handleSetCompletion
-  const handleSetCompletion = async (): Promise<void> => {
-    try {
-      console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
-  
-      // Prevent re‑entry
-      setCompleteDialogShown.current = true;
-  
-      // 1) Save the logs for this set
-      await saveLogs();
-  
-      const nextSet = currentSetRef.current + 1;
-      if (nextSet <= totalSets) {
-        console.log(`Advancing to set ${nextSet}/${totalSets}`);
-  
-        // 2) Update both state and ref
-        currentSetRef.current = nextSet;
-        setCurrentSet(nextSet);
-  
-        // 3) Reset rep counters immediately
-        setRepCount(0);
-        repCountRef.current = 0;
-  
-        // 4) Clear logs for the new set
-        setSessionLogs([]);
-  
-        // Allow new set‑completion detection
-        setCompleteDialogShown.current = false;
-  
-        // 5) Reset camera + UI for the next set
-        await resetExerciseState();
-      } else {
-        console.log("All sets done – completing workout.");
-        await completeSession();
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Error in set completion:", error);
+ // Revised handleSetCompletion function
+const handleSetCompletion = async (): Promise<void> => {
+  try {
+    console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
+    
+    // Prevent re-entry
+    setCompleteDialogShown.current = true;
+    
+    // 1) Save the logs for this set
+    await saveLogs();
+    
+    // 2) Stop the camera FIRST to prevent any more pose detections
+    if (cameraRef.current) {
+      cameraRef.current.stop();
+      cameraRef.current = null;
     }
-  };
-  
+    
+    const nextSet = currentSetRef.current + 1;
+    if (nextSet <= totalSets) {
+      console.log(`Advancing to set ${nextSet}/${totalSets}`);
+      
+      // 3) Reset rep counters properly 
+      // Important: Do this BEFORE updating the set number
+      setRepCount(0);
+      repCountRef.current = 0;
+      
+      // 4) Update both set state and ref
+      currentSetRef.current = nextSet;
+      setCurrentSet(nextSet);
+      
+      // 5) Clear logs for the new set
+      setSessionLogs([]);
+      
+      // 6) Reset remaining state
+      setStage("N/A");
+      setFeedback("Starting new set...");
+      setLatestFeedback(null);
+      startingLandmarksRef.current = [];
+      
+      // Allow for a delay before restarting camera
+      setTimeout(() => {
+        // Allow new set-completion detection
+        setCompleteDialogShown.current = false;
+        
+        // 7) Restart camera for the next set
+        if (videoRef.current && poseRef.current) {
+          console.log("Restarting camera for new set");
+          const newCam = new Camera(videoRef.current, {
+            onFrame: async () => {
+              await poseRef.current.send({ image: videoRef.current! });
+            },
+            width: 640,
+            height: 480,
+          });
+          newCam.start()
+            .then(() => {
+              console.log("Camera restarted");
+              cameraRef.current = newCam;
+            })
+            .catch((err: Error) => {
+              console.error("Error restarting camera:", err);
+              setFeedback("Failed to restart camera. Please reload.");
+            });
+        }
+      }, 1000); // Give UI time to update before restarting camera
+      
+    } else {
+      console.log("All sets done – completing workout.");
+      await completeSession();
+      navigate("/");
+    }
+  } catch (error) {
+    console.error("Error in set completion:", error);
+  }
+};
 
 
 
