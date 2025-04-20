@@ -218,6 +218,9 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     # Compile the feedback into a string
     feedback_message = " | ".join(feedback)
 
+    # Calculate rep score
+    rep_score, score_label = calculate_rep_score("squats", feedback)
+
     # Prepare all metrics for session tracking
     advanced_metrics = {
         "knee_angle": avg_knee_angle,
