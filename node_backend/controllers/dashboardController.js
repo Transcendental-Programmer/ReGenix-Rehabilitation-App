@@ -30,7 +30,7 @@ exports.getUserDashboardSummary = async (req, res) => {
     // Get exercise distribution
     const exerciseDistribution = await Session.aggregate([
       { $match: { userId: new ObjectId(userId) } },
-      { $group: { 
+      { $group: {
           _id: '$exerciseType', 
           count: { $sum: 1 }
         }
