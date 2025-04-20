@@ -57,7 +57,11 @@ const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <button
-                onClick={logout}
+              onClick={() => {
+                logout();
+                navigate('/'); // Add navigation here
+              }}
+
                 className="flex items-center px-3 py-2 text-dark-300 hover:bg-dark-800 hover:text-primary-300 rounded-md transition-colors duration-200"
               >
                 <span className="mr-2">
