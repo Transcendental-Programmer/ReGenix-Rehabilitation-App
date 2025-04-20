@@ -101,7 +101,9 @@ const Exercise: React.FC = () => {
 
   // Session management
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null); // Added ref for sessionId
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const sessionLogsRef = useRef<SessionLog[]>([]); // Added ref for sessionLogs
   const [isSendingLogs, setIsSendingLogs] = useState<boolean>(false);
   const userId = localStorage.getItem("userId") || "guest"; // Get the user ID from localStorage or use "guest"
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date());
@@ -121,6 +123,7 @@ const Exercise: React.FC = () => {
   const poseRef = useRef<any>(null);
   const startingLandmarksRef = useRef<Landmark[]>([]);
   const repCountRef = useRef<number>(0); // Add ref to track repCount
+  const isSendingLogsRef = useRef<boolean>(false); // Added ref for isSendingLogs
 
   // Helper functions
   const getJointIndex = (jointName: string): number => {
@@ -168,6 +171,8 @@ const Exercise: React.FC = () => {
         const normalizedExercise = exerciseName.toLowerCase().replace(/ /g, "_");
         const exerciseType = exerciseConversion[normalizedExercise] || normalizedExercise;
 
+        console.log("Creating session for exercise:", exerciseType);
+
         const response = await fetch("http://localhost:5000/api/sessions", {
           method: "POST",
           headers: {
@@ -188,7 +193,8 @@ const Exercise: React.FC = () => {
         const data = await response.json();
         if (data.success && data.data._id && !abortController.signal.aborted) {
           setSessionId(data.data._id);
-          console.log("Created session:", data.data._id);
+          sessionIdRef.current = data.data._id; // Set the ref value
+          console.log("Created session with ID:", data.data._id);
         }
       } catch (error) {
         if (error.name !== 'AbortError') {
@@ -201,10 +207,11 @@ const Exercise: React.FC = () => {
 
     // Cleanup function
     return () => {
-      // Abort any pending request
+      // Abort any pending requests
       abortControllerRef.current?.abort();
 
-      if (sessionId && sessionLogs.length > 0) {
+      if (sessionIdRef.current && sessionLogsRef.current.length > 0) {
+        console.log("Component unmounting, saving final logs...");
         saveLogs().then(() => {
           completeSession();
         });
@@ -212,16 +219,38 @@ const Exercise: React.FC = () => {
     };
   }, [exerciseName]); // Keep exerciseName in dependency array
 
+  // Update refs when state changes
+  useEffect(() => {
+    sessionLogsRef.current = sessionLogs;
+  }, [sessionLogs]);
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  useEffect(() => {
+    isSendingLogsRef.current = isSendingLogs;
+  }, [isSendingLogs]);
+
   // Function to save session logs to the backend
   const saveLogs = async (): Promise<void> => {
-    if (!sessionId || sessionLogs.length === 0 || isSendingLogs) {
+    const currentSessionId = sessionIdRef.current;
+    const currentLogs = [...sessionLogsRef.current]; // Make a copy to avoid race conditions
+
+    console.log(`Checking if logs need to be saved - sessionId exists: ${!!currentSessionId}, logs count: ${currentLogs.length}, isSending: ${isSendingLogsRef.current}`);
+
+    if (!currentSessionId || currentLogs.length === 0 || isSendingLogsRef.current) {
+      console.log("Skipping log save: conditions not met");
       return;
     }
 
     try {
       setIsSendingLogs(true);
+      isSendingLogsRef.current = true;
 
-      const response = await fetch(`http://localhost:5000/api/sessions/${sessionId}/logs`, {
+      console.log(`Saving ${currentLogs.length} logs for set ${currentSet}, repCount: ${repCountRef.current}, sessionId: ${currentSessionId}`);
+
+      const response = await fetch(`http://localhost:5000/api/sessions/${currentSessionId}/logs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -230,16 +259,16 @@ const Exercise: React.FC = () => {
         body: JSON.stringify({
           setNumber: currentSet,
           repCount: repCountRef.current, // Use ref value for latest count
-          logs: sessionLogs
+          logs: currentLogs
         })
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save logs");
+        throw new Error(`Failed to save logs: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log("Saved logs:", data);
+      console.log("Saved logs successfully:", data);
 
       // Clear logs after saving
       setSessionLogs([]);
@@ -247,25 +276,34 @@ const Exercise: React.FC = () => {
       console.error("Error saving logs:", error);
     } finally {
       setIsSendingLogs(false);
+      isSendingLogsRef.current = false;
     }
   };
 
   // Function to mark session as complete
   const completeSession = async (): Promise<void> => {
-    if (!sessionId) return;
+    const currentSessionId = sessionIdRef.current;
+    if (!currentSessionId) {
+      console.log("No session ID available, cannot complete session");
+      return;
+    }
 
     try {
+      console.log(`Completing session ${currentSessionId}`);
+
       // Calculate duration in seconds
       const endTime = new Date();
       const duration = Math.round((endTime.getTime() - sessionStartTime.getTime()) / 1000);
 
       // Calculate average form score
-      const allScores = sessionLogs.map(log => log.repScore).filter(score => !!score);
+      const allScores = sessionLogsRef.current.map(log => log.repScore).filter(score => !!score);
       const accuracyScore = allScores.length > 0
         ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
         : 0;
 
-      await fetch(`http://localhost:5000/api/sessions/${sessionId}/complete`, {
+      console.log(`Completing session with duration: ${duration}s, accuracy: ${accuracyScore}`);
+
+      await fetch(`http://localhost:5000/api/sessions/${currentSessionId}/complete`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -273,6 +311,8 @@ const Exercise: React.FC = () => {
         },
         body: JSON.stringify({ duration, accuracyScore })
       });
+
+      console.log("Session completed successfully");
     } catch (error) {
       console.error("Error completing session:", error);
     }
@@ -281,10 +321,14 @@ const Exercise: React.FC = () => {
   // Reset the exercise state
   const resetExerciseState = async (): Promise<void> => {
     try {
+      console.log("Resetting exercise state for new set");
+
+      // Stop the camera first
       if (cameraRef.current) {
         cameraRef.current.stop();
+        cameraRef.current = null;
       }
-      
+
       // Reset rep count and related state
       setRepCount(0);
       repCountRef.current = 0;
@@ -292,10 +336,16 @@ const Exercise: React.FC = () => {
       setFeedback("Starting new set...");
       setLatestFeedback(null);
       startingLandmarksRef.current = [];
+
+      // IMPORTANT: Reset this flag so we can detect set completion again
       setCompleteDialogShown.current = false;
-      
+
+      // Wait a moment to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Restart camera after reset
       if (videoRef.current && poseRef.current) {
+        console.log("Attempting to restart camera for new set");
         const newCamera = new Camera(videoRef.current, {
           onFrame: async () => {
             await poseRef.current.send({ image: videoRef.current });
@@ -303,11 +353,19 @@ const Exercise: React.FC = () => {
           width: 640,
           height: 480
         });
-        newCamera.start();
-        cameraRef.current = newCamera;
+
+        try {
+          await newCamera.start();
+          console.log("Camera restarted for new set");
+          cameraRef.current = newCamera;
+        } catch (err) {
+          console.error("Failed to restart camera:", err);
+          setFeedback("Camera restart failed. Please reload the page.");
+        }
       }
     } catch (err) {
       console.error("Reset error:", err);
+      setFeedback("Error resetting for new set. Please reload the page.");
     }
   };
 
@@ -470,28 +528,37 @@ const Exercise: React.FC = () => {
                 }
               });
             }
-
-            // Only send landmarks to backend if visibility is good
+            const exerciseConversion: Record<string, string> = {
+              bicep_curl: 'bicep_curls',
+              squat: 'squats',
+              pushup: 'pushups',
+              deadlift: 'deadlifts',
+              lunge: 'lunges',
+              situp: 'situps'
+            };
+            // Only send landmarks to backend if visibility is good and set is not complete
             if (visibilityRatio >= REQUIRED_VISIBLE_RATIO && !setCompleteDialogShown.current) {
-              fetch(`http://localhost:8000/landmarks/${exerciseName}`, {
+              const apiExerciseName = exerciseConversion[exerciseName] || exerciseName;
+              fetch(`http://localhost:8000/landmarks/${apiExerciseName}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ landmarks: results.poseLandmarks }),
               })
                 .then(res => res.json())
+                // Inside the onResults callback where feedback data is processed
                 .then((data: FeedbackData) => {
                   // Get current rep count value
                   let currentReps = data.counter ?? data.repCount ?? 0;
-                  
+
                   // Enforce rep count limit (don't exceed repsGoal)
                   if (currentReps > repsGoal) {
                     currentReps = repsGoal;
                   }
-                  
+
                   // Update both state and ref
                   setRepCount(currentReps);
                   repCountRef.current = currentReps;
-                  
+
                   setStage(data.repState ?? data.stage ?? "N/A");
                   setFeedback(data.feedback ?? "N/A");
                   setLatestFeedback({
@@ -504,7 +571,8 @@ const Exercise: React.FC = () => {
                   });
 
                   // Store logs for session tracking
-                  if (sessionId && data) {
+                  const currentSessionId = sessionIdRef.current;
+                  if (currentSessionId && data) {
                     // Create session log entry
                     const logEntry: SessionLog = {
                       counter: currentReps,
@@ -524,14 +592,28 @@ const Exercise: React.FC = () => {
                       const newLogs = [...prevLogs, logEntry];
                       return newLogs;
                     });
+
+                    // Log for debugging
+                    console.log(`Rep ${currentReps}, Stage: ${data.repState ?? data.stage ?? "N/A"}, Score: ${data.rep_score ?? 0}`);
                   }
 
                   // Check if set is complete when reps exactly meet goal
                   if (currentReps >= repsGoal && !setCompleteDialogShown.current) {
+                    console.log(`Rep goal reached: ${currentReps}/${repsGoal}, completing set ${currentSet}`);
+
+                    // Set the flag early to prevent multiple triggers from rapid landmark processing
                     setCompleteDialogShown.current = true;
-                    
-                    // Handle set completion
-                    handleSetCompletion();
+
+                    // Only call handleSetCompletion once when goal is reached
+                    // Use setTimeout with longer delay and double-check the flag
+                    setTimeout(() => {
+                      // Extra safety check to make sure we don't trigger completion logic again
+                      // if something else already started the process
+                      if (setCompleteDialogShown.current) {
+                        console.log("Starting set completion process...");
+                        handleSetCompletion();
+                      }
+                    }, 1000); // Longer delay to ensure UI updates and state is stable
                   }
                 })
                 .catch(err => {
@@ -575,6 +657,7 @@ const Exercise: React.FC = () => {
           });
           // Stop the stream immediately to avoid conflicts with Camera utility
           stream.getTracks().forEach(track => track.stop());
+          console.log("Camera permission granted");
         } catch (error) {
           console.error("Camera permission denied:", error);
           setFeedback("Camera permission denied. Please allow camera access and reload.");
@@ -640,7 +723,10 @@ const Exercise: React.FC = () => {
       }
 
       // Save any remaining logs
-      if (sessionId && sessionLogs.length > 0) {
+      const currentSessionId = sessionIdRef.current;
+      const logsToSave = sessionLogsRef.current;
+      if (currentSessionId && logsToSave.length > 0) {
+        console.log(`Cleanup: Saving ${logsToSave.length} remaining logs`);
         saveLogs();
       }
     };
@@ -649,39 +735,60 @@ const Exercise: React.FC = () => {
   // Set up auto-saving of logs every 10 seconds
   useEffect(() => {
     const saveInterval = setInterval(() => {
-      if (sessionId && sessionLogs.length > 0) {
+      const currentSessionId = sessionIdRef.current;
+      const logsCount = sessionLogsRef.current.length;
+
+      console.log(`Auto-save check: sessionId exists: ${!!currentSessionId}, logs count: ${logsCount}`);
+
+      if (currentSessionId && logsCount > 0) {
+        console.log("Auto-saving logs...");
         saveLogs();
       }
     }, 10000); // 10 seconds
 
     return () => clearInterval(saveInterval);
-  }, [sessionId, sessionLogs]);
+  }, []); // Empty dependency array since we're using refs
 
   // Extracted set completion handler to its own function for clarity
   const handleSetCompletion = async () => {
     try {
+      console.log(`Set ${currentSet} completed. Saving logs...`);
+
+      // Make sure we don't trigger this multiple times
+      if (setCompleteDialogShown.current) {
+        console.log("Set completion already in progress, ignoring duplicate call");
+        return;
+      }
+
+      // Set the flag to prevent multiple executions
+      setCompleteDialogShown.current = true;
+
+      // First save the logs for the completed set
       await saveLogs();
 
+      // Check if we have more sets to do
       if (currentSet < totalSets) {
-        alert(`Set ${currentSet} completed! Click OK to start set ${currentSet + 1}.`);
-        
-        // Update set number
+        console.log(`Moving to set ${currentSet + 1} of ${totalSets}`);
+
+        // Set the new set number first
         setCurrentSet(prev => prev + 1);
-        
-        // Reset exercise state
+
+        // Reset exercise state for new set
         await resetExerciseState();
-        
+
         // Clear logs for the new set
         setSessionLogs([]);
       } else {
+        // All sets completed
+        console.log("All sets completed. Finishing workout.");
         await completeSession();
-        alert("Workout completed! Great job!");
         navigate("/");
       }
     } catch (error) {
       console.error("Set completion error:", error);
     }
   };
+
 
   // Function to get exercise-specific metrics for display
   const getAdvancedMetrics = () => {
