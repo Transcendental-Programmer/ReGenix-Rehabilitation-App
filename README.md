@@ -166,4 +166,4 @@ Each exercise uses core and advanced metrics:
 
 ## 📜 License
 
-MIT © Debarun Joardar (djoardar2001@gmail.com)
+MIT © Priyansh Saxena (priyena.programming@gmail.com)

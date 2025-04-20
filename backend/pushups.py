@@ -1,7 +1,8 @@
 import numpy as np
 import mediapipe as mp
 from state import exercise_state
-from feedback_config import PUSHUP_CONFIG
+from feedback_config import PUSHUP_CONFIG, FEEDBACK_TO_JOINTS
+from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
     a = np.array(a)  # First point (shoulder)
@@ -37,7 +38,7 @@ def check_body_alignment(shoulder, hip, ankle):
 # Setup MediaPipe Pose for landmark indexing
 mp_pose = mp.solutions.pose
 
-def process_landmarks(landmarks, tolerance):
+def process_landmarks(landmarks, tolerance, session_id=None):
     """
     Process landmarks for pushup form analysis with enhanced feedback
     """
@@ -114,15 +115,73 @@ def process_landmarks(landmarks, tolerance):
     if not feedback:
         feedback = [PUSHUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
 
+    # Calculate rep score
+    rep_score, score_label = calculate_rep_score("pushups", feedback)
+
     # Compile the feedback into a string
     feedback_message = " | ".join(feedback)
     
+    # Log the rep if this is a new rep and we have a session ID
+    if counter > state.get("counter", 0) and session_id:
+        try:
+            from session_state import record_rep
+            metrics = {
+                "elbow_angle": avg_elbow_angle,
+                "alignment_score": alignment_score
+            }
+            record_rep(session_id, "pushups", feedback, metrics)
+        except ImportError:
+            # Session state module not available, continue without logging
+            pass
+    
+    # Create affected joints and segments arrays for visualization
+    affected_joints = []
+    affected_segments = []
+    
+    # Map feedback flags to affected joints
+    for flag in feedback:
+        if flag in FEEDBACK_TO_JOINTS:
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                if group == "elbows":
+                    affected_joints.extend([13, 14])  # Left and right elbow
+                elif group == "shoulders":
+                    affected_joints.extend([11, 12])  # Left and right shoulder
+                elif group == "hips":
+                    affected_joints.extend([23, 24])  # Left and right hip
+                elif group == "back":
+                    affected_joints.extend([11, 12, 23, 24])  # Shoulders and hips for back
+    
+    # Remove duplicates
+    affected_joints = list(set(affected_joints))
+    
+    # Create affected segments based on joints
+    if 11 in affected_joints or 13 in affected_joints:  # Left shoulder or elbow
+        affected_segments.append(["left_shoulder", "left_elbow"])
+        
+    if 12 in affected_joints or 14 in affected_joints:  # Right shoulder or elbow
+        affected_segments.append(["right_shoulder", "right_elbow"])
+    
+    if 11 in affected_joints or 23 in affected_joints:  # Left shoulder or hip
+        affected_segments.append(["left_shoulder", "left_hip"])
+        
+    if 12 in affected_joints or 24 in affected_joints:  # Right shoulder or hip
+        affected_segments.append(["right_shoulder", "right_hip"])
+    
+    if 23 in affected_joints or 24 in affected_joints:  # Both hips
+        affected_segments.append(["left_hip", "right_hip"])
+
     new_state = {
         "counter": counter,
         "stage": stage,
         "elbowAngle": avg_elbow_angle,
         "alignmentScore": alignment_score,
-        "feedback": feedback_message
+        "feedback": feedback_message,
+        "rep_score": rep_score,
+        "score_label": score_label,
+        "feedback_flags": feedback,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["pushups"] = new_state
