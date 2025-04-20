@@ -263,7 +263,7 @@ useEffect(() => {
           "Authorization": `Bearer ${localStorage.getItem("token")}`
         },
         body: JSON.stringify({
-          setNumber: currentSet,
+          setNumber: currentSetRef.current,
           repCount: repCountRef.current, // Use ref value for latest count
           logs: currentLogs
         })
@@ -543,7 +543,7 @@ useEffect(() => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   landmarks: results.poseLandmarks,
-                  setNumber: currentSetRef.current      // ← tell the backend which set we're on
+                  setNumber: currentSetRef.current       // ← tell the backend which set we're on
                 }),
               })
                 .then(res => res.json())

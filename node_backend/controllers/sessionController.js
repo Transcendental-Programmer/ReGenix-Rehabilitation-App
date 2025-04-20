@@ -35,31 +35,63 @@ exports.createSession = async (req, res) => {
 
 // Save session logs received from frontend
 // Modify saveSessionLogs controller
+// Update the saveSessionLogs controller in sessionController.js
 exports.saveSessionLogs = async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { setNumber, repCount, logs } = req.body;
 
+    console.log(`Received log data for session ${sessionId}, set ${setNumber}, with ${logs.length} logs`);
+
     const session = await Session.findById(sessionId);
     if (!session) return res.status(404).json({ message: 'Session not found' });
 
-    let sessionLog = await SessionLog.findOneAndUpdate(
-      { sessionId, setNumber },
-      { $push: { logs: { $each: logs } }, repCount },
-      { new: true, upsert: true }
-    );
+    // Explicitly find logs for this specific set
+    let sessionLog = await SessionLog.findOne({ 
+      sessionId, 
+      setNumber: setNumber // Ensure we're finding the correct set
+    });
+    
+    if (sessionLog) {
+      // Update existing log for this set
+      sessionLog.logs.push(...logs);
+      sessionLog.repCount = repCount;
+      await sessionLog.save();
+    } else {
+      // Create new log for this set
+      sessionLog = new SessionLog({
+        sessionId, 
+        setNumber,
+        repCount,
+        logs
+      });
+      await sessionLog.save();
+    }
 
     // Update set completion
     if (sessionLog.repCount >= session.targetReps) {
-      session.completedSets += 1;
-      if (session.completedSets >= session.totalSets) {
-        session.completed = true;
-        session.endTime = new Date();
+      // Check if this set is already marked as completed
+      const existingCompletedSets = await SessionLog.countDocuments({
+        sessionId,
+        repCount: { $gte: session.targetReps }
+      });
+      
+      // Only update if this is a new completed set
+      if (session.completedSets < existingCompletedSets) {
+        session.completedSets = existingCompletedSets;
+        if (session.completedSets >= session.totalSets) {
+          session.completed = true;
+          session.endTime = new Date();
+        }
+        await session.save();
       }
-      await session.save();
     }
 
-    res.json({ session, sessionLog });
+    res.json({ 
+      success: true,
+      session, 
+      sessionLog 
+    });
   } catch (error) {
     console.error('Error saving logs:', error);
     res.status(500).json({ message: 'Server error' });
