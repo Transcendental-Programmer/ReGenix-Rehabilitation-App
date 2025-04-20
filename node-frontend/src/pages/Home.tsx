@@ -15,11 +15,10 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
-              Recover Faster with AI-Powered Rehabilitation
+            Train Smarter with AI-Powered Posture Guidance
             </h1>
             <p className="text-lg md:text-xl text-dark-200 mb-8">
-              Personalized rehabilitation plans, progress tracking, and expert guidance 
-              at your fingertips. Get back to your best self with RehabPro.
+            Perfect your workout form, prevent injuries, and boost your performance with intelligent feedback from PosturePro.
             </p>
             
             {/* Only show login/register buttons when not authenticated */}
@@ -45,37 +44,34 @@ const Home: React.FC = () => {
       <section className="py-16 bg-dark-900">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Your Path to Recovery
+          Your Path to Injury-Free Workouts
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="card p-6 hover:border-primary-600 transition-all duration-300">
               <div className="bg-primary-900/30 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                 <Activity className="text-primary-400 w-8 h-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Personalized Plans</h3>
+              <h3 className="text-xl font-semibold mb-2">Personalized Posture Plans</h3>
               <p className="text-dark-300">
-                AI-generated rehabilitation plans customized to your specific injury, 
-                needs, and progress. Adapt as you improve.
+              AI-generated workout guidance tailored to your fitness level and goals. Focus on form, not just reps.
               </p>
             </div>
             <div className="card p-6 hover:border-secondary-600 transition-all duration-300">
               <div className="bg-secondary-900/30 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                 <CheckCircle className="text-secondary-400 w-8 h-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
+              <h3 className="text-xl font-semibold mb-2">Real-Time Feedback</h3>
               <p className="text-dark-300">
-                Visualize your recovery journey with detailed analytics, statistics 
-                and progress reports that show how far you've come.
+              Get instant form correction and posture suggestions while you train. Your virtual coach is always on.
               </p>
             </div>
             <div className="card p-6 hover:border-accent-600 transition-all duration-300">
               <div className="bg-accent-900/30 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                 <Clock className="text-accent-400 w-8 h-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Guided Sessions</h3>
+              <h3 className="text-xl font-semibold mb-2">Guided Workouts</h3>
               <p className="text-dark-300">
-                Follow along with detailed exercise instructions, timers, and form 
-                guides to ensure you're rehabilitating correctly.
+              Follow along with expert-designed routines, clear visuals, and smart cues to improve technique and avoid common mistakes.
               </p>
             </div>
           </div>
@@ -87,11 +83,10 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-6">
-              See RehabPro in Action
+              See PosturePro in Action
             </h2>
             <p className="text-dark-300 text-center mb-8">
-              Watch how RehabPro helps users through their rehabilitation journey with 
-              intuitive interfaces and powerful tools.
+            Discover how PosturePro helps you train better with interactive tools and real-time support.
             </p>
             <div className="aspect-video bg-dark-800 rounded-xl border border-dark-700 flex items-center justify-center mb-8 overflow-hidden">
               <div className="text-center p-8">
@@ -109,18 +104,17 @@ const Home: React.FC = () => {
           <div className="max-w-3xl mx-auto text-center">
             <Zap className="mx-auto text-primary-500 mb-6" size={40} />
             <h2 className="text-3xl font-bold mb-6">
-              Ready to Transform Your Recovery?
+            Ready to Transform Your Training?
             </h2>
             <p className="text-dark-200 mb-8">
-              Join thousands of users who've accelerated their rehabilitation with our 
-              intelligent platform. Get started today and take control of your recovery.
+            Join thousands of athletes and fitness enthusiasts using PosturePro to level up their workouts and prevent injuries. Start training smarter today.
             </p>
             
             {/* Only show the CTA button when not authenticated */}
             {!isAuthenticated && (
               <Link to="/register">
                 <Button variant="primary" size="lg">
-                  Start Your Recovery Journey
+                Start Your Form-Perfecting Journey
                 </Button>
               </Link>
             )}
