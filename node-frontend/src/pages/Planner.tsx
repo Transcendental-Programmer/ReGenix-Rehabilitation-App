@@ -26,6 +26,7 @@ const ExerciseCatalog: React.FC = () => {
     {
       id: 'ex-1',
       name: 'Push Ups',
+      url: 'pushups',
       description: 'A classic exercise that targets the chest, shoulders, and triceps.',
       steps: [
         'Start in a plank position with hands slightly wider than shoulder-width apart.',
@@ -37,11 +38,15 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'Medium',
       targetArea: 'Chest, Shoulders, Triceps',
       videoUrl: '/../../assets/male-Bodyweight-push-up-front.mp4',
-      demoVideos: ['../../assets/male-Bodyweight-push-up-front.mp4', '../../assets/male-Bodyweight-push-up-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Bodyweight-push-up-front.mp4',
+        '/../../assets/male-Bodyweight-push-up-side.mp4'
+      ]
     },
     {
       id: 'ex-2',
       name: 'Sit Ups',
+      url: 'situps',
       description: 'An exercise that strengthens the abdominal muscles and hip flexors.',
       steps: [
         'Lie on your back with knees bent and feet flat on the floor.',
@@ -53,11 +58,15 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'Medium',
       targetArea: 'Abdominals',
       videoUrl: '/../../assets/male-Bodyweight-situp-front.mp4',
-      demoVideos: ['/../../assets/male-Bodyweight-situp-front.mp4', '/../../assets/male-Bodyweight-situp-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Bodyweight-situp-front.mp4',
+        '/../../assets/male-Bodyweight-situp-side.mp4'
+      ]
     },
     {
       id: 'ex-3',
       name: 'Squats',
+      url: 'squats',
       description: 'A compound exercise that targets multiple muscle groups in the lower body.',
       steps: [
         'Stand with feet shoulder-width apart.',
@@ -69,11 +78,15 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'Medium',
       targetArea: 'Quadriceps, Hamstrings, Glutes',
       videoUrl: '/../../assets/male-Bodyweight-bodyweight-squat-front.mp4',
-      demoVideos: ['/../../assets/male-Bodyweight-bodyweight-squat-front.mp4', '/../../assets/male-Bodyweight-bodyweight-squat-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Bodyweight-bodyweight-squat-front.mp4',
+        '/../../assets/male-Bodyweight-bodyweight-squat-side.mp4'
+      ]
     },
     {
       id: 'ex-4',
       name: 'Lunges',
+      url: 'lunges',
       description: 'A unilateral exercise that improves balance and strengthens leg muscles.',
       steps: [
         'Stand upright with feet hip-width apart.',
@@ -85,14 +98,18 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'Medium',
       targetArea: 'Quadriceps, Hamstrings, Glutes',
       videoUrl: '/../../assets/male-Bodyweight-forward-lunges-front.mp4',
-      demoVideos: ['/../../assets/male-Bodyweight-forward-lunges-front.mp4', '/../../assets/male-Bodyweight-forward-lunges-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Bodyweight-forward-lunges-front.mp4',
+        '/../../assets/male-Bodyweight-forward-lunges-side.mp4'
+      ]
     },
     {
       id: 'ex-5',
       name: 'Bicep Curls',
+      url: 'bicep_curls',
       description: 'An isolation exercise that targets the biceps muscles.',
       steps: [
-        'Stand up straight with a dumbbell in each hand at arm\'s length.',
+        'Stand up straight with a dumbbell in each hand at arm’s length.',
         'Raise one dumbbell and twist your forearm until it is vertical and your palm faces the shoulder.',
         'Lower to original position and repeat with opposite arm.',
         'Keep elbows close to your torso throughout the movement.'
@@ -101,11 +118,15 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'Low',
       targetArea: 'Biceps',
       videoUrl: '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
-      demoVideos: ['/../../assets/male-Dumbbells-dumbbell-curl-front.mp4', '/../../assets/male-Dumbbells-dumbbell-curl-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
+        '/../../assets/male-Dumbbells-dumbbell-curl-side.mp4'
+      ]
     },
     {
       id: 'ex-6',
       name: 'Deadlift',
+      url: 'deadlifts',
       description: 'A compound exercise that strengthens the posterior chain.',
       steps: [
         'Stand with feet hip-width apart, with a barbell or dumbbells in front of you.',
@@ -117,9 +138,13 @@ const ExerciseCatalog: React.FC = () => {
       intensity: 'High',
       targetArea: 'Lower Back, Glutes, Hamstrings',
       videoUrl: '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
-      demoVideos: ['/../../assets/male-Barbell-barbell-deadlift-front.mp4', '/../../assets/male-Barbell-barbell-deadlift-side.mp4']
+      demoVideos: [
+        '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
+        '/../../assets/male-Barbell-barbell-deadlift-side.mp4'
+      ]
     }
   ];
+  
 
   const openExerciseDetails = (exercise: Exercise) => {
     setSelectedExercise(exercise);
@@ -127,9 +152,7 @@ const ExerciseCatalog: React.FC = () => {
   };
 
   const handleStartExercise = (exercise: Exercise) => {
-    const exerciseName = exercise.name.toLowerCase().replace(/\s+/g, '_');
-    console.log(`Navigating to: /exercise?exercise=${exerciseName}`);
-    navigate(`/exercise?exercise=${exerciseName}`, { replace: false });
+    navigate(`/exercise?exercise=${exercise.url}`, { replace: false });
   };
 
   return (
