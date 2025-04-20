@@ -124,6 +124,12 @@ const Exercise: React.FC = () => {
   const startingLandmarksRef = useRef<Landmark[]>([]);
   const repCountRef = useRef<number>(0); // Add ref to track repCount
   const isSendingLogsRef = useRef<boolean>(false); // Added ref for isSendingLogs
+  // at the top of your component, alongside other refs:
+const currentSetRef = useRef<number>(1);
+useEffect(() => {
+  currentSetRef.current = currentSet;
+}, [currentSet]);
+
 
   // Helper functions
   const getJointIndex = (jointName: string): number => {
@@ -319,55 +325,48 @@ const Exercise: React.FC = () => {
   };
 
   // Reset the exercise state
+  // Replaces your existing resetExerciseState
   const resetExerciseState = async (): Promise<void> => {
     try {
       console.log("Resetting exercise state for new set");
-
-      // Stop the camera first
+  
+      // Stop old camera
       if (cameraRef.current) {
         cameraRef.current.stop();
         cameraRef.current = null;
       }
-
-      // Reset rep count and related state
+  
+      // Zero out both state and ref
       setRepCount(0);
       repCountRef.current = 0;
       setStage("N/A");
       setFeedback("Starting new set...");
       setLatestFeedback(null);
       startingLandmarksRef.current = [];
-
-      // IMPORTANT: Reset this flag so we can detect set completion again
-      setCompleteDialogShown.current = false;
-
-      // Wait a moment to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Restart camera after reset
+  
+      // Let React flush the above
+      await new Promise(resolve => setTimeout(resolve, 500));
+  
+      // Restart camera
       if (videoRef.current && poseRef.current) {
-        console.log("Attempting to restart camera for new set");
-        const newCamera = new Camera(videoRef.current, {
+        console.log("Restarting camera for new set");
+        const newCam = new Camera(videoRef.current, {
           onFrame: async () => {
-            await poseRef.current.send({ image: videoRef.current });
+            await poseRef.current.send({ image: videoRef.current! });
           },
           width: 640,
-          height: 480
+          height: 480,
         });
-
-        try {
-          await newCamera.start();
-          console.log("Camera restarted for new set");
-          cameraRef.current = newCamera;
-        } catch (err) {
-          console.error("Failed to restart camera:", err);
-          setFeedback("Camera restart failed. Please reload the page.");
-        }
+        await newCam.start();
+        cameraRef.current = newCam;
+        console.log("Camera restarted");
       }
     } catch (err) {
       console.error("Reset error:", err);
-      setFeedback("Error resetting for new set. Please reload the page.");
+      setFeedback("Error resetting for new set. Please reload.");
     }
   };
+  
 
   // Setup MediaPipe Pose
   useEffect(() => {
@@ -542,7 +541,10 @@ const Exercise: React.FC = () => {
               fetch(`http://localhost:8000/landmarks/${apiExerciseName}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ landmarks: results.poseLandmarks }),
+                body: JSON.stringify({
+                  landmarks: results.poseLandmarks,
+                  setNumber: currentSetRef.current      // ← tell the backend which set we're on
+                }),
               })
                 .then(res => res.json())
                 // Inside the onResults callback where feedback data is processed
@@ -750,44 +752,48 @@ const Exercise: React.FC = () => {
   }, []); // Empty dependency array since we're using refs
 
   // Extracted set completion handler to its own function for clarity
-  const handleSetCompletion = async () => {
+  // Replaces your existing handleSetCompletion
+  const handleSetCompletion = async (): Promise<void> => {
     try {
-      console.log(`Set ${currentSet} completed. Saving logs...`);
-
-      // Make sure we don't trigger this multiple times
-      if (setCompleteDialogShown.current) {
-        console.log("Set completion already in progress, ignoring duplicate call");
-        return;
-      }
-
-      // Set the flag to prevent multiple executions
+      console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
+  
+      // Prevent re‑entry
       setCompleteDialogShown.current = true;
-
-      // First save the logs for the completed set
+  
+      // 1) Save the logs for this set
       await saveLogs();
-
-      // Check if we have more sets to do
-      if (currentSet < totalSets) {
-        console.log(`Moving to set ${currentSet + 1} of ${totalSets}`);
-
-        // Set the new set number first
-        setCurrentSet(prev => prev + 1);
-
-        // Reset exercise state for new set
-        await resetExerciseState();
-
-        // Clear logs for the new set
+  
+      const nextSet = currentSetRef.current + 1;
+      if (nextSet <= totalSets) {
+        console.log(`Advancing to set ${nextSet}/${totalSets}`);
+  
+        // 2) Update both state and ref
+        currentSetRef.current = nextSet;
+        setCurrentSet(nextSet);
+  
+        // 3) Reset rep counters immediately
+        setRepCount(0);
+        repCountRef.current = 0;
+  
+        // 4) Clear logs for the new set
         setSessionLogs([]);
+  
+        // Allow new set‑completion detection
+        setCompleteDialogShown.current = false;
+  
+        // 5) Reset camera + UI for the next set
+        await resetExerciseState();
       } else {
-        // All sets completed
-        console.log("All sets completed. Finishing workout.");
+        console.log("All sets done – completing workout.");
         await completeSession();
         navigate("/");
       }
     } catch (error) {
-      console.error("Set completion error:", error);
+      console.error("Error in set completion:", error);
     }
   };
+  
+
 
 
   // Function to get exercise-specific metrics for display
