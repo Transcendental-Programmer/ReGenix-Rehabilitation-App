@@ -1,6 +1,6 @@
 import numpy as np
 from state import exercise_state
-from feedback_config import LUNGE_CONFIG
+from feedback_config import LUNGE_CONFIG, FEEDBACK_TO_JOINTS
 from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
@@ -165,6 +165,36 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         }
         record_rep(session_id, "lunges", feedback_flags, metrics)
     
+    # Create affected joints and segments arrays for visualization
+    affected_joints = []
+    affected_segments = []
+    
+    # Map feedback flags to affected joints
+    for flag in feedback_flags:
+        if flag in FEEDBACK_TO_JOINTS:
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                if group == "knees":
+                    affected_joints.extend([25, 26])  # Left and right knee
+                elif group == "back":
+                    affected_joints.extend([11, 12, 23, 24])  # Shoulders and hips for back
+    
+    # Remove duplicates
+    affected_joints = list(set(affected_joints))
+    
+    # Create affected segments based on joints
+    if 25 in affected_joints or 27 in affected_joints:  # Left knee or ankle
+        affected_segments.append(["left_knee", "left_ankle"])
+        
+    if 26 in affected_joints or 28 in affected_joints:  # Right knee or ankle
+        affected_segments.append(["right_knee", "right_ankle"])
+        
+    if 11 in affected_joints or 23 in affected_joints:  # Back issue - left side
+        affected_segments.append(["left_shoulder", "left_hip"])
+        
+    if 12 in affected_joints or 24 in affected_joints:  # Back issue - right side
+        affected_segments.append(["right_shoulder", "right_hip"])
+
     # Update state with metrics for potential future use
     new_state = {
         "counter": counter,
@@ -176,7 +206,9 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "feedback_flags": feedback_flags,
         "rep_score": rep_score,
         "score_label": score_label,
-        "progress": progress
+        "progress": progress,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["lunges"] = new_state

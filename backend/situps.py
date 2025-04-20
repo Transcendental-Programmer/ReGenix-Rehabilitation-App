@@ -1,6 +1,7 @@
 import numpy as np
 from state import exercise_state
-from feedback_config import SITUP_CONFIG
+from feedback_config import SITUP_CONFIG, FEEDBACK_TO_JOINTS
+from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
     a, b, c = np.array(a), np.array(b), np.array(c)
@@ -22,7 +23,7 @@ def check_neck_strain(nose, neck, shoulder):
     # If neck is too flexed (looking down too much), it might indicate strain
     return neck_angle < 150
 
-def process_landmarks(landmarks, tolerance):
+def process_landmarks(landmarks, tolerance, session_id=None):
     """
     Process landmarks for situp form analysis with enhanced feedback
     """
@@ -97,15 +98,75 @@ def process_landmarks(landmarks, tolerance):
     if not feedback:
         feedback = [SITUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
 
+    # Calculate rep score
+    rep_score, score_label = calculate_rep_score("situps", feedback)
+    
     # Compile the feedback into a string
     feedback_message = " | ".join(feedback)
+    
+    # Log the rep if this is a new rep and we have a session ID
+    if counter > state.get("counter", 0) and session_id:
+        try:
+            from session_state import record_rep
+            metrics = {
+                "hip_angle": avg_hip_angle,
+                "neck_strain": neck_strain_detected
+            }
+            record_rep(session_id, "situps", feedback, metrics)
+        except ImportError:
+            # Session state module not available, continue without logging
+            pass
+
+    # Create affected joints and segments arrays for visualization
+    affected_joints = []
+    affected_segments = []
+    
+    # Map feedback flags to affected joints
+    for flag in feedback:
+        if flag in FEEDBACK_TO_JOINTS:
+            joint_groups = FEEDBACK_TO_JOINTS[flag]
+            for group in joint_groups:
+                if group == "knees":
+                    affected_joints.extend([25, 26])  # Left and right knee
+                elif group == "hips":
+                    affected_joints.extend([23, 24])  # Left and right hip
+                elif group == "back":
+                    # No direct point for back, use shoulders and hips
+                    affected_joints.extend([11, 12, 23, 24])
+                elif group == "shoulders":
+                    affected_joints.extend([11, 12])  # Left and right shoulder
+                
+    # Remove duplicates
+    affected_joints = list(set(affected_joints))
+    
+    # Create affected segments based on joints
+    if 0 in affected_joints or 11 in affected_joints or 12 in affected_joints:  # Nose or shoulders
+        affected_segments.append(["nose", "left_shoulder"])
+        affected_segments.append(["nose", "right_shoulder"])
+    
+    if 11 in affected_joints or 23 in affected_joints:  # Left shoulder or hip
+        affected_segments.append(["left_shoulder", "left_hip"])
+    
+    if 12 in affected_joints or 24 in affected_joints:  # Right shoulder or hip
+        affected_segments.append(["right_shoulder", "right_hip"])
+    
+    if 23 in affected_joints or 25 in affected_joints:  # Left hip or knee
+        affected_segments.append(["left_hip", "left_knee"])
+        
+    if 24 in affected_joints or 26 in affected_joints:  # Right hip or knee
+        affected_segments.append(["right_hip", "right_knee"])
 
     new_state = {
         "counter": counter,
         "stage": stage,
         "hipAngle": avg_hip_angle,
         "neckStrain": neck_strain_detected,
-        "feedback": feedback_message
+        "feedback": feedback_message,
+        "rep_score": rep_score,
+        "score_label": score_label,
+        "feedback_flags": feedback,
+        "affected_joints": affected_joints,
+        "affected_segments": affected_segments
     }
     
     exercise_state["situps"] = new_state
