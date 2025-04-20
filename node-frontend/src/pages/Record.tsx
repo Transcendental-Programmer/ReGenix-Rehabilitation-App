@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { Calendar, Check, ChevronDown, Clock, Search, Star } from 'lucide-react';
+import { Calendar, Check, ChevronDown, Clock, Search, Star, Trophy, BarChart3, CheckCircle, AlertTriangle } from 'lucide-react';
 import Card, { CardContent, CardHeader } from '../components/Card';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -161,6 +162,36 @@ const Record: React.FC = () => {
       return `${seconds}s`;
     }
   };
+  
+  // Format exercise name for display
+  const formatExerciseName = (name: string) => {
+    return name.replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Get score color based on the score value
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-success-500';
+    if (score >= 70) return 'text-primary-400';
+    if (score >= 50) return 'text-warning-500';
+    return 'text-error-400';
+  };
+
+  // Get label for the feedback
+  const getFeedbackLabel = (feedback: string) => {
+    const labels: {[key: string]: string} = {
+      'GOOD_CURL': 'Good form',
+      'INCOMPLETE_CURL': 'Incomplete movement',
+      'SHOULDER_SWINGING': 'Shoulder swinging',
+      'TOO_FAST': 'Moving too fast',
+      'ELBOW_NOT_FIXED': 'Elbow not fixed',
+      'INCOMPLETE_EXTENSION': 'Incomplete extension'
+    };
+    
+    return labels[feedback] || feedback.replace(/_/g, ' ').toLowerCase();
+  };
 
   if (loading) {
     return (
@@ -205,7 +236,7 @@ const Record: React.FC = () => {
           <input
             type="text"
             placeholder="Search exercises or notes..."
-            className="input pl-10"
+            className="input pl-10 w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -241,53 +272,54 @@ const Record: React.FC = () => {
         <div className="space-y-4">
           {filteredSessions.map((session) => (
             <Card key={session.id} className="overflow-visible">
-              <div
-                className="p-4 cursor-pointer"
-                onClick={() => toggleExpand(session.id)}
-              >
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                  <div className="flex items-start flex-1">
-                    <Calendar size={18} className="text-primary-400 mr-2 mt-1 flex-shrink-0" />
-                    <div className="w-full">
-                      <div className="flex flex-col md:flex-row md:items-center md:gap-4">
-                        <h3 className="font-medium te">
-                          {new Date(session.startTime).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </h3>
-                        <h3 className="font-bold">{session.exercise}</h3>
+              <CardHeader>
+                <div
+                  className="cursor-pointer w-full"
+                  onClick={() => toggleExpand(session.id)}
+                >
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                    <div className="flex items-start flex-1">
+                      <Calendar size={20} className="text-primary-400 mr-3 mt-1 flex-shrink-0" />
+                      <div className="w-full">
+                        <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                          <h3 className="font-medium text-dark-300">
+                            {new Date(session.startTime).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </h3>
+                          <h3 className="font-bold">{formatExerciseName(session.exercise)}</h3>
+                        </div>
+                        <div className="flex items-center mt-1 text-sm text-dark-300">
+                          <Clock size={14} className="mr-1" />
+                          <span>{formatDuration(session.duration)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center mt-1 text-sm text-dark-300">
-                        <Clock size={14} className="mr-1" />
-                        <span>{formatDuration(session.duration)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-6 mt-2 md:mt-0">
+                      <div className="text-right">
+                        <div className="text-sm text-dark-300">Completion</div>
+                        <div className="font-medium">{calculateCompletionRate(session)}%</div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-4 mt-2 md:mt-0">
-                    <div className="text-right">
-                      <div className="text-sm text-dark-300">Completion</div>
-                      <div className="font-medium">{calculateCompletionRate(session)}%</div>
-                    </div>
+                      <div className="text-right">
+                        <div className="text-sm text-dark-300">Score</div>
+                        <div className={`font-medium ${getScoreColor(session.score)}`}>{session.score}%</div>
+                      </div>
 
-                    <div className="text-right">
-                      <div className="text-sm text-dark-300">Score</div>
-                      <div className="font-medium">{session.score}%</div>
+                      <ChevronDown
+                        size={20}
+                        className={`transform transition-transform duration-200 ${expandedSession === session.id ? 'rotate-180' : ''}`}
+                      />
                     </div>
-
-                    <ChevronDown
-                      size={20}
-                      className={`transform transition-transform duration-200 ${expandedSession === session.id ? 'rotate-180' : ''
-                        }`}
-                    />
                   </div>
                 </div>
-              </div>
+              </CardHeader>
 
               {expandedSession === session.id && (
-                <div className="px-4 pb-4 pt-2 border-t border-dark-700">
+                <CardContent className="pt-0 border-t border-dark-700">
                   {sessionDetails[session.id] ? (
                     sessionDetails[session.id].error ? (
                       <div className="text-error-400 text-center py-4">
@@ -297,19 +329,19 @@ const Record: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <h4 className="font-medium mb-3">Exercise Details</h4>
-                          <div className="p-3 bg-dark-700 rounded-md mb-4">
+                          <div className="p-3 bg-dark-800 rounded-md mb-4">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center">
                                 {session.completed ? (
-                                  <Check size={16} className="text-success-500 mr-3" />
+                                  <CheckCircle size={16} className="text-success-500 mr-3" />
                                 ) : (
                                   <div className="w-4 h-4 rounded-full border border-dark-400 mr-3" />
                                 )}
-                                <span>{session.exercise}</span>
+                                <span>{formatExerciseName(session.exercise)}</span>
                               </div>
                               <div>
                                 <span className="text-dark-300 mr-1">Score:</span>
-                                <span className="text-dark-200">{session.score}%</span>
+                                <span className={getScoreColor(session.score)}>{session.score}%</span>
                               </div>
                             </div>
                           </div>
@@ -318,23 +350,39 @@ const Record: React.FC = () => {
                             sessionDetails[session.id].setStats.length > 0 && (
                               <>
                                 <h4 className="font-medium mb-3">Sets</h4>
-                                <div className="space-y-3">
-                                  {sessionDetails[session.id].setStats.map((set, i) => (
-                                    <div key={i} className="p-3 bg-dark-700 rounded-md">
+                                <div className="space-y-4">
+                                  {sessionDetails[session.id].setStats.map((set: any, i: number) => (
+                                    <div key={i} className="p-3 bg-dark-800 rounded-md border border-dark-700 shadow">
                                       <div className="flex justify-between items-center mb-2">
-                                        <span className="font-medium">Set {set.setNumber}</span>
+                                        <div className="flex items-center">
+                                          <div className="bg-primary-400 rounded-full w-6 h-6 flex items-center justify-center text-dark-900 font-bold mr-2">
+                                            {set.setNumber}
+                                          </div>
+                                          <span className="font-medium">Set {set.setNumber}</span>
+                                        </div>
                                         <span className="text-sm text-dark-300">{set.repCount} reps</span>
                                       </div>
                                       {set.averageScore > 0 && (
                                         <div className="mb-2">
                                           <span className="text-sm text-dark-300">Average Score: </span>
-                                          <span>{set.averageScore}%</span>
+                                          <span className={getScoreColor(set.averageScore)}>{set.averageScore}%</span>
                                         </div>
                                       )}
                                       {set.commonFeedback && set.commonFeedback.length > 0 && (
                                         <div>
-                                          <span className="text-sm text-dark-300">Common feedback: </span>
-                                          <span>{set.commonFeedback.join(', ')}</span>
+                                          <span className="text-sm text-dark-300">Feedback: </span>
+                                          <div className="mt-1">
+                                            {set.commonFeedback.map((feedback: string, idx: number) => (
+                                              <div key={idx} className="flex items-center mt-1">
+                                                {feedback === 'GOOD_CURL' ? (
+                                                  <CheckCircle size={14} className="text-success-500 mr-2 flex-shrink-0" />
+                                                ) : (
+                                                  <AlertTriangle size={14} className="text-warning-500 mr-2 flex-shrink-0" />
+                                                )}
+                                                <span className="text-sm">{getFeedbackLabel(feedback)}</span>
+                                              </div>
+                                            ))}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
@@ -366,13 +414,13 @@ const Record: React.FC = () => {
                           {sessionDetails[session.id].notes && (
                             <div>
                               <h4 className="font-medium mb-2">Notes</h4>
-                              <div className="p-3 bg-dark-700 rounded-md">
+                              <div className="p-3 bg-dark-800 rounded-md">
                                 <p className="text-dark-200">{sessionDetails[session.id].notes}</p>
                               </div>
                             </div>
                           )}
 
-                          {/* <div className="flex md:justify-end mt-4">
+                          <div className="flex md:justify-end mt-6">
                             <Button
                               variant="outline"
                               size="sm"
@@ -380,7 +428,7 @@ const Record: React.FC = () => {
                             >
                               View Full Details
                             </Button>
-                          </div> */}
+                          </div>
                         </div>
                       </div>
                     )
@@ -389,7 +437,7 @@ const Record: React.FC = () => {
                       <LoadingSpinner size="md" />
                     </div>
                   )}
-                </div>
+                </CardContent>
               )}
             </Card>
           ))}

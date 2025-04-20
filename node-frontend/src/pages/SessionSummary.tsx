@@ -316,12 +316,12 @@ const SessionSummary = () => {
             </Button>
             
             <div className="flex gap-3">
-              <Button 
+              {/* <Button 
                 variant="secondary"
                 onClick={() => navigate('/plan')}
               >
                 Go to Planner
-              </Button>
+              </Button> */}
               <Button 
                 variant="primary"
                 onClick={() => navigate('/exercise')}
