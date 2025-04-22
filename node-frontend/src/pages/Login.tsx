@@ -45,7 +45,7 @@ const Login: React.FC = () => {
             Welcome Back
           </h1>
           <p className="text-dark-300 mt-2">
-            Log in to continue your rehabilitation journey
+            Log in to continue your training journey
           </p>
         </div>
 

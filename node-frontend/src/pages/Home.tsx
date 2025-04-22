@@ -15,10 +15,10 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
-            Train Smarter with AI-Powered Posture Guidance
+            Train Smarter with AI-Powered Exercise Guidance
             </h1>
             <p className="text-lg md:text-xl text-dark-200 mb-8">
-            Perfect your workout form, prevent injuries, and boost your performance with intelligent feedback from PosturePro.
+            Perfect your workout form, prevent injuries, and boost your performance with intelligent feedback from ReGeniX.
             </p>
             
             {/* Only show login/register buttons when not authenticated */}
@@ -51,9 +51,9 @@ const Home: React.FC = () => {
               <div className="bg-primary-900/30 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                 <Activity className="text-primary-400 w-8 h-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Personalized Posture Plans</h3>
+              <h3 className="text-xl font-semibold mb-2">Personalized Exercise Plans</h3>
               <p className="text-dark-300">
-              AI-generated workout guidance tailored to your fitness level and goals. Focus on form, not just reps.
+              Workout guidance tailored to your fitness level and goals. Focus on form, not just reps.
               </p>
             </div>
             <div className="card p-6 hover:border-secondary-600 transition-all duration-300">
@@ -71,7 +71,7 @@ const Home: React.FC = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Guided Workouts</h3>
               <p className="text-dark-300">
-              Follow along with expert-designed routines, clear visuals, and smart cues to improve technique and avoid common mistakes.
+              Follow along with clear visuals, and smart cues to improve technique and avoid common mistakes.
               </p>
             </div>
           </div>
@@ -83,10 +83,10 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-6">
-              See PosturePro in Action
+              See ReGeniX in Action
             </h2>
             <p className="text-dark-300 text-center mb-8">
-            Discover how PosturePro helps you train better with interactive tools and real-time support.
+            Discover how ReGeniX helps you train better with interactive tools and real-time support.
             </p>
             <div className="aspect-video bg-dark-800 rounded-xl border border-dark-700 flex items-center justify-center mb-8 overflow-hidden">
               <div className="text-center p-8">
@@ -107,7 +107,7 @@ const Home: React.FC = () => {
             Ready to Transform Your Training?
             </h2>
             <p className="text-dark-200 mb-8">
-            Join thousands of athletes and fitness enthusiasts using PosturePro to level up their workouts and prevent injuries. Start training smarter today.
+            Join ReGeniX to level up your workouts and prevent injuries. Start training smarter today.
             </p>
             
             {/* Only show the CTA button when not authenticated */}
@@ -157,7 +157,7 @@ const Home: React.FC = () => {
             
             <div className="mt-12">
               <p className="text-dark-300">
-                PosturePro is proudly built by Fitness AI Solutions, a team passionate about combining cutting-edge technology with fitness expertise to create tools that make exercise safer and more effective for everyone.
+              ReGeniX - An AI-powered fitness companion that transforms your camera into a personal trainer - analyzing movement patterns in real-time, providing intelligent form correction, and gamifying your fitness journey with performance analytics.
               </p>
             </div>
           </div>
