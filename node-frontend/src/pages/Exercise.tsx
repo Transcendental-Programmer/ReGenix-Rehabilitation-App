@@ -372,7 +372,7 @@ useEffect(() => {
   useEffect(() => {
     if (!exerciseName) {
       alert("No exercise specified!");
-      navigate("/");
+      navigate("/planner");
       return;
     }
 
@@ -829,7 +829,7 @@ const resetBackendCounter = async (): Promise<void> => {
     } else {
       console.log("All sets done – completing workout.");
       await completeSession();
-      navigate("/");
+      navigate("/sessions/${sessionId}");
     }
   } catch (error) {
     console.error("Error in set completion:", error);
@@ -876,11 +876,11 @@ const resetBackendCounter = async (): Promise<void> => {
               if (sessionId && sessionLogs.length > 0) {
                 saveLogs().then(() => {
                   completeSession().then(() => {
-                    navigate("/");
+                    navigate("/sessions/${sessionId}");
                   });
                 });
               } else {
-                navigate("/");
+                navigate("/sessions/${sessionId}");
               }
             }}
           >
