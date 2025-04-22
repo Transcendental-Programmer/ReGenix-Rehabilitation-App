@@ -261,7 +261,7 @@ const Dashboard: React.FC = () => {
             <h2 className="text-xl font-semibold">Different Exercises Performed</h2>
           </CardHeader>
           <CardContent>
-            {/* Completely revised chart implementation */}
+            {/* Responsive chart implementation */}
             <div className="relative mt-6">
               {/* Y-axis labels */}
               <div className="absolute -top-6 left-0 right-0 flex justify-between px-4">
@@ -274,17 +274,19 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
               
-              {/* Chart area with actual different height bars */}
+              {/* Chart area with responsive bars */}
               <div className="flex justify-between items-end h-40 mb-8">
                 {Object.entries(exerciseCounts).map(([exercise, count], index) => {
                   const barHeightPx = count === 0 ? 4 : Math.max((count / maxCount) * 140, 4);
                   
                   return (
                     <div key={`bar-${index}`} className="flex flex-col items-center">
+                      {/* Use fixed pixel widths for different screen sizes to ensure proper scaling */}
                       <div 
-                        className="bg-primary-500 rounded-t w-12" 
+                        className="bg-primary-500 rounded-t"
                         style={{
-                          height: `${barHeightPx}px`
+                          height: `${barHeightPx}px`,
+                          width: 'calc(min(2rem, 8vw))'
                         }}
                       />
                     </div>
@@ -292,11 +294,25 @@ const Dashboard: React.FC = () => {
                 })}
               </div>
               
-              {/* X-axis with exercise names */}
+              {/* X-axis with vertical exercise names on small screens */}
               <div className="flex justify-between border-t border-dark-700 pt-2">
                 {Object.entries(exerciseCounts).map(([exercise, count], index) => (
-                  <div key={`name-${index}`} className="text-center">
-                    <span className="text-xs text-dark-400">
+                  <div key={`name-${index}`} className="text-center px-1">
+                    {/* Horizontal text on large screens */}
+                    <span className="text-xs text-dark-400 hidden md:block">
+                      {formatExerciseName(exercise).split(' ')[0]}
+                    </span>
+                    
+                    {/* Vertical text on small screens */}
+                    <span 
+                      className="text-xs text-dark-400 block md:hidden" 
+                      style={{
+                        writingMode: 'vertical-rl',
+                        transform: 'rotate(180deg)',
+                        maxHeight: '60px',
+                        minHeight: '40px'
+                      }}
+                    >
                       {formatExerciseName(exercise).split(' ')[0]}
                     </span>
                   </div>
@@ -350,12 +366,6 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* {useMock && (
-        // <div className="mt-8 p-4 bg-warning-900/20 border border-warning-700/30 rounded-md">
-        //   <p className="text-warning-300 text-sm font-medium">⚠️ Using Demo Data - API connection not established</p>
-        // </div>
-      )} */}
     </div>
   );
 };

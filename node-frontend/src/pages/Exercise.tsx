@@ -980,21 +980,22 @@ const resetBackendCounter = async (): Promise<void> => {
               )}
             </div>
 
-            {/* Session Status */}
-            {sessionId && (
-              <div className="bg-dark-800 rounded-lg border border-primary-700/30 p-3 shadow-md">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-primary-400 mb-1">Session Status</h3>
-                  {isSendingLogs && (
-                    <div className="animate-pulse w-4 h-4 rounded-full bg-primary-400"></div>
-                  )}
-                </div>
-                <div className="text-dark-300 text-sm">
-                  <p>Session ID: <span className="font-mono text-xs text-dark-400">{sessionId.substring(0, 8)}...</span></p>
-                  <p>Collected data points: {sessionLogs.length}</p>
-                </div>
-              </div>
-            )}
+           {/* Session Status - Temporarily disabled
+  {sessionId && (
+    <div className="bg-dark-800 rounded-lg border border-primary-700/30 p-3 shadow-md">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-primary-400 mb-1">Session Status</h3>
+        {isSendingLogs && (
+          <div className="animate-pulse w-4 h-4 rounded-full bg-primary-400"></div>
+        )}
+      </div>
+      <div className="text-dark-300 text-sm">
+        <p>Session ID: <span className="font-mono text-xs text-dark-400">{sessionId.substring(0, 8)}...</span></p>
+        <p>Collected data points: {sessionLogs.length}</p>
+      </div>
+    </div>
+  )}
+*/}
 
             {/* Advanced Metrics */}
             {getAdvancedMetrics()}
