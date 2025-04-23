@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation,useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Home, Calendar, BarChart2, ClipboardList, User, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,18 +18,18 @@ const Navbar: React.FC = () => {
     { name: 'Home', path: '/', icon: <Home size={20} /> },
     ...(isAuthenticated
       ? [
-          { name: 'Dashboard', path: '/dashboard', icon: <BarChart2 size={20} /> },
-          { name: 'Exercises', path: '/planner', icon: <Calendar size={20} /> },
-          { name: 'History', path: '/record', icon: <ClipboardList size={20} /> },
-          { name: 'Profile', path: '/profile', icon: <User size={20} /> },
-        ]
+        { name: 'Dashboard', path: '/dashboard', icon: <BarChart2 size={20} /> },
+        { name: 'Exercises', path: '/planner', icon: <Calendar size={20} /> },
+        { name: 'History', path: '/record', icon: <ClipboardList size={20} /> },
+        { name: 'Profile', path: '/profile', icon: <User size={20} /> },
+      ]
       : []),
   ];
 
   return (
     <nav className="bg-dark-900 border-b border-dark-700 sticky top-0 z-50 shadow-md">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
+      <div className="container flex mx-auto px-2">
+        <div className="flex justify-between space-x-4 w-full items-center h-16 lg:text-sm xl:text-lg">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full p-1">
@@ -39,16 +39,15 @@ const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-2">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`flex items-center px-3 py-2 rounded-md transition-colors duration-200 ${
-                  isActive(link.path)
-                    ? 'bg-dark-700 text-primary-400'
-                    : 'text-dark-300 hover:bg-dark-800 hover:text-primary-300'
-                }`}
+                className={`flex items-center px-1 py-2 rounded-md transition-colors duration-200 ${isActive(link.path)
+                  ? 'bg-dark-700 text-primary-400'
+                  : 'text-dark-300 hover:bg-dark-800 hover:text-primary-300'
+                  }`}
               >
                 <span className="mr-2">{link.icon}</span>
                 <span>{link.name}</span>
@@ -57,10 +56,10 @@ const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <button
-              onClick={() => {
-                logout();
-                navigate('/'); // Add navigation here
-              }}
+                onClick={() => {
+                  logout();
+                  navigate('/'); // Add navigation here
+                }}
 
                 className="flex items-center px-3 py-2 text-dark-300 hover:bg-dark-800 hover:text-primary-300 rounded-md transition-colors duration-200"
               >
@@ -80,7 +79,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={toggleMenu}
               className="text-dark-300 hover:text-primary-400 focus:outline-none"
@@ -93,20 +92,18 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Navigation */}
       <div
-        className={`md:hidden bg-dark-900 border-b border-dark-700 overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-screen py-2' : 'max-h-0'
-        }`}
+        className={`lg:hidden bg-dark-900 border-b border-dark-700 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-screen py-2' : 'max-h-0'
+          }`}
       >
         <div className="container mx-auto px-4 space-y-2 pb-3">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`flex items-center px-3 py-2 rounded-md transition-colors duration-200 ${
-                isActive(link.path)
-                  ? 'bg-dark-700 text-primary-400'
-                  : 'text-dark-300 hover:bg-dark-800 hover:text-primary-300'
-              }`}
+              className={`flex items-center px-3 py-2 rounded-md transition-colors duration-200 ${isActive(link.path)
+                ? 'bg-dark-700 text-primary-400'
+                : 'text-dark-300 hover:bg-dark-800 hover:text-primary-300'
+                }`}
               onClick={closeMenu}
             >
               <span className="mr-3">{link.icon}</span>

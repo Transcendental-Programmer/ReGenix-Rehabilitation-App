@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-dark-950 text-dark-50 font-sans antialiased;
+    @apply bg-dark-950 text-dark-50 font-sans antialiased w-[100vw];
   }
 
   h1,
