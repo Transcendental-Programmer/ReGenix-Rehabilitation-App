@@ -26,6 +26,7 @@ env/
 ENV/
 node_modules/ 
 venv-tf/
+mini_report/
 
 # IDE specific files
 .vscode/
