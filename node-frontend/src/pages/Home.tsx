@@ -55,9 +55,9 @@ const Home: React.FC = () => {
               <div className="bg-primary-900/30 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                 <Activity className="text-primary-400 w-8 h-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Personalized Exercise Plans</h3>
+              <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
               <p className="text-dark-300">
-                Workout guidance tailored to your fitness level and goals. Focus on form, not just reps.
+              We respect your privacy — no video recordings are ever stored on our backend. Your workout data stays yours.
               </p>
             </div>
             <div className="card p-6 hover:border-secondary-600 transition-all duration-300">

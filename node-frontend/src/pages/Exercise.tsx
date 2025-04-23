@@ -125,10 +125,10 @@ const Exercise: React.FC = () => {
   const repCountRef = useRef<number>(0); // Add ref to track repCount
   const isSendingLogsRef = useRef<boolean>(false); // Added ref for isSendingLogs
   // at the top of your component, alongside other refs:
-const currentSetRef = useRef<number>(1);
-useEffect(() => {
-  currentSetRef.current = currentSet;
-}, [currentSet]);
+  const currentSetRef = useRef<number>(1);
+  useEffect(() => {
+    currentSetRef.current = currentSet;
+  }, [currentSet]);
 
 
   // Helper functions
@@ -329,13 +329,13 @@ useEffect(() => {
   const resetExerciseState = async (): Promise<void> => {
     try {
       console.log("Resetting exercise state for new set");
-  
+
       // Stop old camera
       if (cameraRef.current) {
         cameraRef.current.stop();
         cameraRef.current = null;
       }
-  
+
       // Zero out both state and ref
       setRepCount(0);
       repCountRef.current = 0;
@@ -343,10 +343,10 @@ useEffect(() => {
       setFeedback("Starting new set...");
       setLatestFeedback(null);
       startingLandmarksRef.current = [];
-  
+
       // Let React flush the above
       await new Promise(resolve => setTimeout(resolve, 500));
-  
+
       // Restart camera
       if (videoRef.current && poseRef.current) {
         console.log("Restarting camera for new set");
@@ -366,7 +366,7 @@ useEffect(() => {
       setFeedback("Error resetting for new set. Please reload.");
     }
   };
-  
+
 
   // Setup MediaPipe Pose
   useEffect(() => {
@@ -755,86 +755,86 @@ useEffect(() => {
     return () => clearInterval(saveInterval);
   }, []); // Empty dependency array since we're using refs
 
-// Add this function to explicitly reset the backend counter
-const resetBackendCounter = async (): Promise<void> => {
-  const exerciseConversion: Record<string, string> = {
-    bicep_curl: 'bicep_curls',
-    squat: 'squats',
-    pushup: 'pushups',
-    deadlift: 'deadlifts',
-    lunge: 'lunges',
-    situp: 'situps'
+  // Add this function to explicitly reset the backend counter
+  const resetBackendCounter = async (): Promise<void> => {
+    const exerciseConversion: Record<string, string> = {
+      bicep_curl: 'bicep_curls',
+      squat: 'squats',
+      pushup: 'pushups',
+      deadlift: 'deadlifts',
+      lunge: 'lunges',
+      situp: 'situps'
+    };
+
+    const apiExerciseName = exerciseConversion[exerciseName] || exerciseName;
+
+    console.log(`Resetting backend counter for ${apiExerciseName}`);
+
+    try {
+      const response = await fetch(`http://localhost:8000/reset/${apiExerciseName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const result = await response.json();
+      console.log("Backend counter reset result:", result);
+    } catch (error) {
+      console.error("Failed to reset backend counter:", error);
+    }
   };
-  
-  const apiExerciseName = exerciseConversion[exerciseName] || exerciseName;
-  
-  console.log(`Resetting backend counter for ${apiExerciseName}`);
-  
-  try {
-    const response = await fetch(`http://localhost:8000/reset/${apiExerciseName}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }
-    });
-    
-    const result = await response.json();
-    console.log("Backend counter reset result:", result);
-  } catch (error) {
-    console.error("Failed to reset backend counter:", error);
-  }
-};
 
   // Extracted set completion handler to its own function for clarity
   // Replaces your existing handleSetCompletion
- // Revised handleSetCompletion function
- const handleSetCompletion = async (): Promise<void> => {
-  try {
-    console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
-  
-    // Prevent re-entry
-    setCompleteDialogShown.current = true;
-  
-    // 1) Save the logs for this set
-    await saveLogs();
-  
-    const nextSet = currentSetRef.current + 1;
-    if (nextSet <= totalSets) {
-      console.log(`Advancing to set ${nextSet}/${totalSets}`);
-  
-      // 2) Stop the camera FIRST to prevent any more pose detections
-      if (cameraRef.current) {
-        cameraRef.current.stop();
-        cameraRef.current = null;
+  // Revised handleSetCompletion function
+  const handleSetCompletion = async (): Promise<void> => {
+    try {
+      console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
+
+      // Prevent re-entry
+      setCompleteDialogShown.current = true;
+
+      // 1) Save the logs for this set
+      await saveLogs();
+
+      const nextSet = currentSetRef.current + 1;
+      if (nextSet <= totalSets) {
+        console.log(`Advancing to set ${nextSet}/${totalSets}`);
+
+        // 2) Stop the camera FIRST to prevent any more pose detections
+        if (cameraRef.current) {
+          cameraRef.current.stop();
+          cameraRef.current = null;
+        }
+
+        // 3) IMPORTANT: Reset the backend counter
+        await resetBackendCounter();
+
+        // 4) Update both state and ref
+        currentSetRef.current = nextSet;
+        setCurrentSet(nextSet);
+
+        // 5) Reset rep counters immediately
+        setRepCount(0);
+        repCountRef.current = 0;
+
+        // 6) Clear logs for the new set
+        setSessionLogs([]);
+
+        // Allow new set-completion detection
+        setCompleteDialogShown.current = false;
+
+        // 7) Reset camera + UI for the next set
+        await resetExerciseState();
+
+      } else {
+        console.log("All sets done – completing workout.");
+        await completeSession();
+        navigate("/sessions/${sessionId}");
       }
-      
-      // 3) IMPORTANT: Reset the backend counter
-      await resetBackendCounter();
-  
-      // 4) Update both state and ref
-      currentSetRef.current = nextSet;
-      setCurrentSet(nextSet);
-  
-      // 5) Reset rep counters immediately
-      setRepCount(0);
-      repCountRef.current = 0;
-  
-      // 6) Clear logs for the new set
-      setSessionLogs([]);
-  
-      // Allow new set-completion detection
-      setCompleteDialogShown.current = false;
-  
-      // 7) Reset camera + UI for the next set
-      await resetExerciseState();
-      
-    } else {
-      console.log("All sets done – completing workout.");
-      await completeSession();
-      navigate("/sessions/${sessionId}");
+    } catch (error) {
+      console.error("Error in set completion:", error);
     }
-  } catch (error) {
-    console.error("Error in set completion:", error);
-  }
-};
+  };
 
 
 
@@ -980,7 +980,7 @@ const resetBackendCounter = async (): Promise<void> => {
               )}
             </div>
 
-           {/* Session Status - Temporarily disabled
+            {/* Session Status - Temporarily disabled
   {sessionId && (
     <div className="bg-dark-800 rounded-lg border border-primary-700/30 p-3 shadow-md">
       <div className="flex justify-between items-center">
