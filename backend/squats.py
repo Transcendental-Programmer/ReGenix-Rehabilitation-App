@@ -313,7 +313,8 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "concentric_time": state.get("concentric_time", 0),
         "affected_joints": affected_joints,
         "affected_segments": affected_segments,
-        "progress": progress  # Add progress field
+        "progress": progress,  # Add progress field
+        "advanced_metrics": advanced_metrics  # Add advanced metrics
     }
     
     exercise_state["squats"] = new_state

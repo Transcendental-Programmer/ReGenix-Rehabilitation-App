@@ -181,6 +181,12 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
     if 14 in affected_joints or 16 in affected_joints:  # Right elbow or wrist
         affected_segments.append(["right_elbow", "right_wrist"])
 
+    # Create advanced metrics dictionary
+    advanced_metrics = {
+        "elbow_angle": avg_elbow_angle,
+        "shoulder_movement": shoulder_movement
+    }
+
     new_state = {
         "repCount": counter,
         "stage": stage,
@@ -193,7 +199,8 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
         "score_label": score_label,
         "progress": progress,
         "affected_joints": affected_joints,
-        "affected_segments": affected_segments
+        "affected_segments": affected_segments,
+        "advanced_metrics": advanced_metrics  # Add advanced metrics
     }
     
     exercise_state["bicep_curls"] = new_state

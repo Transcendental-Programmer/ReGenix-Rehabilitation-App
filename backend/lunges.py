@@ -200,6 +200,13 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     if 12 in affected_joints or 24 in affected_joints:  # Back issue - right side
         affected_segments.append(["right_shoulder", "right_hip"])
 
+    # Create advanced metrics dictionary
+    advanced_metrics = {
+        "knee_angle": avg_knee_angle,
+        "knee_projection": avg_knee_projection,
+        "torso_angle": avg_torso_angle
+    }
+
     # Update state with metrics for potential future use
     new_state = {
         "counter": counter,
@@ -213,7 +220,8 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "score_label": score_label,
         "progress": progress,
         "affected_joints": affected_joints,
-        "affected_segments": affected_segments
+        "affected_segments": affected_segments,
+        "advanced_metrics": advanced_metrics  # Add advanced metrics
     }
     
     exercise_state["lunges"] = new_state
