@@ -598,13 +598,19 @@ const Exercise: React.FC = () => {
                   // console.log(`Stage: ${data.repState ?? data.stage ?? "N/A"}`);
                   // console.log(`Feedback: ${data.feedback ?? "N/A"}`);
                   // console.log('Feedback flags:', data.feedback_flags ?? []);
+                  // In your pose.onResults callback where you process the response:
+                  const metrics = data.advanced_metrics || {};
+                  // Convert all metric values to numbers
+                  const sanitizedMetrics = Object.fromEntries(
+                    Object.entries(metrics).map(([k, v]) => [k, typeof v === 'number' ? v : 0])
+                  );
                   setLatestFeedback({
                     affected_joints: data.affected_joints ?? [],
                     affected_segments: data.affected_segments ?? [],
                     feedback_flags: data.feedback_flags ?? [],
                     rep_score: data.rep_score ?? 0,
                     score_label: data.score_label ?? "",
-                    advanced_metrics: data.advanced_metrics ?? {}
+                    advanced_metrics: sanitizedMetrics ?? {}
                   });
                   latestFeedbackRef.current = {
                     affected_joints: data.affected_joints ?? [],
@@ -630,10 +636,12 @@ const Exercise: React.FC = () => {
                     };
 
                     // Update session logs using functional update
-                    setSessionLogs(prevLogs => {
-                      const newLogs = [...prevLogs, logEntry];
-                      return newLogs;
-                    });
+                    // In your pose.onResults callback:
+setSessionLogs(prevLogs => {
+  const newLogs = [...prevLogs, logEntry];
+  sessionLogsRef.current = newLogs; // Keep ref in sync
+  return newLogs;
+});
 
                     // Log for debugging
                     console.log(`Rep ${currentReps}, Stage: ${data.repState ?? data.stage ?? "N/A"}, Score: ${data.rep_score ?? 0}`);
@@ -682,6 +690,7 @@ const Exercise: React.FC = () => {
 
     // Setup camera
     const setupCamera = async () => {
+      const abortController = new AbortController();
       try {
         console.log("Setting up camera");
         setFeedback("Initializing camera...");
@@ -734,6 +743,7 @@ const Exercise: React.FC = () => {
 
         // Start camera with error handling
         console.log("Starting camera");
+        if (abortController.signal.aborted) return;
         camera.start()
           .then(() => {
             console.log("Camera started successfully");
@@ -741,13 +751,22 @@ const Exercise: React.FC = () => {
             cameraRef.current = camera;
           })
           .catch((err: Error) => {
+            if (!abortController.signal.aborted) {
+              console.error("Camera error:", err);
+            }
             console.error("Error starting camera:", err);
             setFeedback("Failed to start camera. Please check permissions and reload.");
           });
       } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error("Camera error:", error);
+        }
         console.error("Camera setup error:", error);
         setFeedback("Camera setup failed. Please reload the page.");
       }
+      return () => {
+        abortController.abort();
+      };
     };
 
     // Start the setup process
@@ -756,38 +775,42 @@ const Exercise: React.FC = () => {
     // Cleanup function
     return () => {
       console.log("Cleaning up camera and pose");
-      if (cameraRef.current) {
-        try {
-          cameraRef.current.stop();
-        } catch (error) {
-          console.error("Error stopping camera:", error);
+      const cleanup = async () => {
+        // Stop camera first
+        if (cameraRef.current) {
+          await cameraRef.current.stop().catch(() => {});
         }
-      }
-
-      // Save any remaining logs
-      const currentSessionId = sessionIdRef.current;
-      const logsToSave = sessionLogsRef.current;
-      if (currentSessionId && logsToSave.length > 0) {
-        console.log(`Cleanup: Saving ${logsToSave.length} remaining logs`);
-        saveLogs();
-      }
+    
+        // Then save logs if needed
+        const currentSessionId = sessionIdRef.current;
+        const logsToSave = sessionLogsRef.current;
+        
+        if (currentSessionId && logsToSave.length > 0) {
+          console.log(`Cleanup: Saving ${logsToSave.length} remaining logs`);
+          await saveLogs();
+          await completeSession();
+        }
+      };
+    
+      cleanup().catch(console.error);
     };
   }, [exerciseName, navigate, repsGoal, totalSets]);
 
   // Set up auto-saving of logs every 10 seconds
   useEffect(() => {
-    const saveInterval = setInterval(() => {
+    const saveInterval = setInterval(async () => {
       const currentSessionId = sessionIdRef.current;
       const logsCount = sessionLogsRef.current.length;
-
-      console.log(`Auto-save check: sessionId exists: ${!!currentSessionId}, logs count: ${logsCount}`);
-
+  
       if (currentSessionId && logsCount > 0) {
         console.log("Auto-saving logs...");
-        saveLogs();
+        await saveLogs();
+        
+        // Force update logs ref after save
+        setSessionLogs([]);
       }
-    }, 10000); // 10 seconds
-
+    }, 8000); // Reduced to 8 seconds
+  
     return () => clearInterval(saveInterval);
   }, []); // Empty dependency array since we're using refs
 
@@ -825,50 +848,53 @@ const Exercise: React.FC = () => {
   const handleSetCompletion = async (): Promise<void> => {
     try {
       console.log(`Set ${currentSetRef.current} completed. Saving logs...`);
-
-      // Prevent re-entry
       setCompleteDialogShown.current = true;
-
-      // 1) Save the logs for this set
+  
+      // 1) Force save any remaining logs for this set
       await saveLogs();
-
+  
       const nextSet = currentSetRef.current + 1;
       if (nextSet <= totalSets) {
         console.log(`Advancing to set ${nextSet}/${totalSets}`);
-
-        // 2) Stop the camera FIRST to prevent any more pose detections
+  
+        // 2) Stop camera BEFORE any state changes
         if (cameraRef.current) {
-          cameraRef.current.stop();
+          await cameraRef.current.stop();
           cameraRef.current = null;
         }
-
-        // 3) IMPORTANT: Reset the backend counter
+  
+        // 3) Reset backend counter
         await resetBackendCounter();
-
-        // 4) Update both state and ref
+  
+        // 4) Update state using functional updates to avoid race conditions
+        setCurrentSet(prev => nextSet);
         currentSetRef.current = nextSet;
-        setCurrentSet(nextSet);
-
-        // 5) Reset rep counters immediately
+        
+        // 5) Reset reps using callback form
         setRepCount(0);
         repCountRef.current = 0;
-
-        // 6) Clear logs for the new set
-        setSessionLogs([]);
-
-        // Allow new set-completion detection
-        setCompleteDialogShown.current = false;
-
-        // 7) Reset camera + UI for the next set
+  
+        // 6) Delay log reset until after camera restart
+        setTimeout(() => {
+          setSessionLogs([]);
+        }, 500);
+  
+        // 7) Restart camera with fresh state
         await resetExerciseState();
-
+  
+        // 8) Reset completion flag AFTER restart
+        setCompleteDialogShown.current = false;
       } else {
-        console.log("All sets done – completing workout.");
+        // For final set completion
+        console.log("All sets done - final save");
+        await saveLogs();
         await completeSession();
+        
+        // Navigate AFTER ensuring save is complete
         navigate(`/sessions/${sessionIdRef.current}`);
       }
     } catch (error) {
-      console.error("Error in set completion:", error);
+      console.error("Set completion error:", error);
     }
   };
 
@@ -879,12 +905,19 @@ const Exercise: React.FC = () => {
     if (!latestFeedback?.advanced_metrics) return null;
 
     const metrics = latestFeedback.advanced_metrics;
-    const metricRows = Object.entries(metrics).map(([key, value]) => (
-      <p key={key} className="text-dark-300 flex justify-between items-center">
-        <span className="capitalize font-medium">{key.replace(/_/g, " ")}:</span>
-        <span className="text-right font-mono">{value.toFixed(1)}</span>
-      </p>
-    ));
+    const metricRows = Object.entries(metrics).map(([key, value]) => {
+      // Safely handle non-number values
+      const formattedValue = typeof value === 'number'
+        ? value.toFixed(1)
+        : 'N/A';
+
+      return (
+        <p key={key} className="text-dark-300 flex justify-between items-center">
+          <span className="capitalize font-medium">{key.replace(/_/g, " ")}:</span>
+          <span className="text-right font-mono">{formattedValue}</span>
+        </p>
+      );
+    });
 
     return metricRows.length > 0 ? (
       <div className="bg-dark-800 rounded-lg border border-dark-700 p-3 shadow-md">

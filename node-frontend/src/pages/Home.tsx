@@ -7,6 +7,7 @@ import yashimg from '../../assets/yashimg.jpg';
 import aayushimg from '../../assets/aayushimg.jpg';
 import priyanshimg from '../../assets/priyanshimg.jpg';
 import shreshthaimg from '../../assets/shreshthaimg.jpg'
+import demo from '../../assets/demo short.mp4';
 
 const Home: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -57,7 +58,7 @@ const Home: React.FC = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
               <p className="text-dark-300">
-              We respect your privacy — no video recordings are ever stored on our backend. Your workout data stays yours.
+                We respect your privacy — no video recordings are ever stored on our backend. Your workout data stays yours.
               </p>
             </div>
             <div className="card p-6 hover:border-secondary-600 transition-all duration-300">
@@ -92,11 +93,14 @@ const Home: React.FC = () => {
             <p className="text-dark-300 text-center mb-8">
               Discover how ReGeniX helps you train better with interactive tools and real-time support.
             </p>
-            <div className="aspect-video bg-dark-800 rounded-xl border border-dark-700 flex items-center justify-center mb-8 overflow-hidden">
-              <div className="text-center p-8">
-                <Play size={60} className="mx-auto text-primary-500 mb-4" />
-                <p className="text-dark-200">Demo Video Coming Soon</p>
-              </div>
+            <div className="aspect-video bg-dark-800 rounded-xl border border-dark-700 flex items-center justify-center mb-8 overflow-hidden h-min">
+                <video
+                  src={demo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"/>
             </div>
           </div>
         </div>
