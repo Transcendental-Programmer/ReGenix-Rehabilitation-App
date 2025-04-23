@@ -87,6 +87,8 @@ body {
 
 .hero-content {
   max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .hero-title {
@@ -126,6 +128,7 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -169,6 +172,7 @@ body {
 
 .about-container {
   max-width: 800px;
+  width: 100%;
   margin: 0 auto;
   text-align: center;
 }
@@ -203,6 +207,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .exercise-header {
@@ -249,6 +256,7 @@ body {
   justify-content: center;
   gap: 1rem;
   margin-bottom: 2rem;
+  width: 100%;
 }
 
 .stat-box {
@@ -275,6 +283,7 @@ body {
 /* User Details Styles */
 .user-details-container {
   max-width: 800px;
+  width: 100%;
   margin: 2rem auto;
   padding: 2rem;
   background: linear-gradient(135deg, #000, #222);
@@ -344,6 +353,7 @@ body {
 .user-details-table-container {
   margin-top: 2rem;
   overflow-x: auto;
+  width: 100%;
 }
 
 .user-details-table {
@@ -372,7 +382,55 @@ body {
   font-family: 'Urbanist', sans-serif;
 }
 
-/* Responsive Styles */
+/* Responsive Styles - Added tablet breakpoint */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablet-specific styles */
+  .container,
+  .hero-content,
+  .about-container,
+  .exercise-page,
+  .user-details-container {
+    width: 90%;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .exercise-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    width: 90%;
+    max-width: 90%;
+  }
+  
+  .hero-title {
+    font-size: 4rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.8rem;
+  }
+  
+  .form-row {
+    flex-wrap: wrap;
+  }
+  
+  .form-row label {
+    flex: 0 0 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .stats-container {
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+  
+  .stat-box {
+    flex: 0 0 45%; 
+    min-width: auto;
+  }
+}
+
 @media (max-width: 768px) {
   .hero-title {
     font-size: 3.5rem;
@@ -409,4 +467,3 @@ body {
     width: 80%;
   }
 }
-
