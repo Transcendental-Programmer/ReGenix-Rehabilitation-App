@@ -25,42 +25,42 @@ const ExerciseCatalog: React.FC = () => {
   const exercises: Exercise[] = [
     {
       id: 'ex-1',
-      name: 'Push Ups',
-      url: 'pushups',
-      description: 'A classic exercise that targets the chest, shoulders, and triceps.',
+      name: 'Deadlift',
+      url: 'deadlifts',
+      description: 'A compound exercise that strengthens the posterior chain.',
       steps: [
-        'Start in a plank position with hands slightly wider than shoulder-width apart.',
-        'Lower your body until your chest nearly touches the floor.',
-        'Push yourself back up to the starting position.',
-        'Keep your body in a straight line throughout the movement.'
+        'Stand with feet hip-width apart, with a barbell or dumbbells in front of you.',
+        'Bend at the hips and knees to lower down and grab the weight.',
+        'Keep your back straight and core engaged as you lift by extending your hips and knees.',
+        'Return the weight to the ground with control by hinging at the hips.'
       ],
-      duration: 10,
-      intensity: 'Medium',
-      targetArea: 'Chest, Shoulders, Triceps',
-      videoUrl: '/../../assets/male-Bodyweight-push-up-front.mp4',
+      duration: 15,
+      intensity: 'High',
+      targetArea: 'Lower Back, Glutes, Hamstrings',
+      videoUrl: '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
       demoVideos: [
-        '/../../assets/male-Bodyweight-push-up-front.mp4',
-        '/../../assets/male-Bodyweight-push-up-side.mp4'
+        '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
+        '/../../assets/male-Barbell-barbell-deadlift-side.mp4'
       ]
     },
     {
       id: 'ex-2',
-      name: 'Sit Ups',
-      url: 'situps',
-      description: 'An exercise that strengthens the abdominal muscles and hip flexors.',
+      name: 'Bicep Curls',
+      url: 'bicep_curls',
+      description: 'An isolation exercise that targets the biceps muscles.',
       steps: [
-        'Lie on your back with knees bent and feet flat on the floor.',
-        'Place your hands behind your head or across your chest.',
-        'Engage your core and lift your upper body toward your knees.',
-        'Lower back down with control and repeat.'
+        'Stand up straight with a dumbbell in each hand at arm’s length.',
+        'Raise one dumbbell and twist your forearm until it is vertical and your palm faces the shoulder.',
+        'Lower to original position and repeat with opposite arm.',
+        'Keep elbows close to your torso throughout the movement.'
       ],
       duration: 8,
-      intensity: 'Medium',
-      targetArea: 'Abdominals',
-      videoUrl: '/../../assets/male-Bodyweight-situp-front.mp4',
+      intensity: 'Low',
+      targetArea: 'Biceps',
+      videoUrl: '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
       demoVideos: [
-        '/../../assets/male-Bodyweight-situp-front.mp4',
-        '/../../assets/male-Bodyweight-situp-side.mp4'
+        '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
+        '/../../assets/male-Dumbbells-dumbbell-curl-side.mp4'
       ]
     },
     {
@@ -85,6 +85,46 @@ const ExerciseCatalog: React.FC = () => {
     },
     {
       id: 'ex-4',
+      name: 'Push Ups',
+      url: 'pushups',
+      description: 'A classic exercise that targets the chest, shoulders, and triceps.',
+      steps: [
+        'Start in a plank position with hands slightly wider than shoulder-width apart.',
+        'Lower your body until your chest nearly touches the floor.',
+        'Push yourself back up to the starting position.',
+        'Keep your body in a straight line throughout the movement.'
+      ],
+      duration: 10,
+      intensity: 'Medium',
+      targetArea: 'Chest, Shoulders, Triceps',
+      videoUrl: '/../../assets/male-Bodyweight-push-up-front.mp4',
+      demoVideos: [
+        '/../../assets/male-Bodyweight-push-up-front.mp4',
+        '/../../assets/male-Bodyweight-push-up-side.mp4'
+      ]
+    },
+    {
+      id: 'ex-5',
+      name: 'Sit Ups',
+      url: 'situps',
+      description: 'An exercise that strengthens the abdominal muscles and hip flexors.',
+      steps: [
+        'Lie on your back with knees bent and feet flat on the floor.',
+        'Place your hands behind your head or across your chest.',
+        'Engage your core and lift your upper body toward your knees.',
+        'Lower back down with control and repeat.'
+      ],
+      duration: 8,
+      intensity: 'Medium',
+      targetArea: 'Abdominals',
+      videoUrl: '/../../assets/male-Bodyweight-situp-front.mp4',
+      demoVideos: [
+        '/../../assets/male-Bodyweight-situp-front.mp4',
+        '/../../assets/male-Bodyweight-situp-side.mp4'
+      ]
+    },
+    {
+      id: 'ex-6',
       name: 'Lunges',
       url: 'lunges',
       description: 'A unilateral exercise that improves balance and strengthens leg muscles.',
@@ -102,47 +142,9 @@ const ExerciseCatalog: React.FC = () => {
         '/../../assets/male-Bodyweight-forward-lunges-front.mp4',
         '/../../assets/male-Bodyweight-forward-lunges-side.mp4'
       ]
-    },
-    {
-      id: 'ex-5',
-      name: 'Bicep Curls',
-      url: 'bicep_curls',
-      description: 'An isolation exercise that targets the biceps muscles.',
-      steps: [
-        'Stand up straight with a dumbbell in each hand at arm’s length.',
-        'Raise one dumbbell and twist your forearm until it is vertical and your palm faces the shoulder.',
-        'Lower to original position and repeat with opposite arm.',
-        'Keep elbows close to your torso throughout the movement.'
-      ],
-      duration: 8,
-      intensity: 'Low',
-      targetArea: 'Biceps',
-      videoUrl: '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
-      demoVideos: [
-        '/../../assets/male-Dumbbells-dumbbell-curl-front.mp4',
-        '/../../assets/male-Dumbbells-dumbbell-curl-side.mp4'
-      ]
-    },
-    {
-      id: 'ex-6',
-      name: 'Deadlift',
-      url: 'deadlifts',
-      description: 'A compound exercise that strengthens the posterior chain.',
-      steps: [
-        'Stand with feet hip-width apart, with a barbell or dumbbells in front of you.',
-        'Bend at the hips and knees to lower down and grab the weight.',
-        'Keep your back straight and core engaged as you lift by extending your hips and knees.',
-        'Return the weight to the ground with control by hinging at the hips.'
-      ],
-      duration: 15,
-      intensity: 'High',
-      targetArea: 'Lower Back, Glutes, Hamstrings',
-      videoUrl: '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
-      demoVideos: [
-        '/../../assets/male-Barbell-barbell-deadlift-front.mp4',
-        '/../../assets/male-Barbell-barbell-deadlift-side.mp4'
-      ]
     }
+    
+    
   ];
   
 
