@@ -81,36 +81,42 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         counter += 1
 
     # Generate detailed feedback
-    feedback = []
+    feedback_flags = []
     
     # Check sit-up height
     if stage == "up":
         if avg_hip_angle > SITUP_CONFIG["HIP_ANGLE_MAX"] + 10:
-            feedback.append(SITUP_CONFIG["FEEDBACK"]["NOT_HIGH_ENOUGH"])
+            feedback_flags.append("NOT_HIGH_ENOUGH")
         elif avg_hip_angle < SITUP_CONFIG["HIP_ANGLE_MIN"] - 5:
-            feedback.append(SITUP_CONFIG["FEEDBACK"]["TOO_HIGH"])
+            feedback_flags.append("TOO_HIGH")
     
     # Check for neck strain
     if neck_strain_detected:
-        feedback.append(SITUP_CONFIG["FEEDBACK"]["PULLING_NECK"])
+        feedback_flags.append("PULLING_NECK")
     
     # If no specific feedback issues, provide general positive feedback
-    if not feedback:
-        feedback = [SITUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
+    if not feedback_flags:
+        feedback_flags.append("GOOD_FORM")
 
     # Calculate rep score
-    rep_score, score_label = calculate_rep_score("situps", feedback)
+    rep_score, score_label = calculate_rep_score("situps", feedback_flags)
 
     # Compile the feedback into a string using the configured feedback messages
     feedback_message = ""
-    for flag in feedback:
+    for flag in feedback_flags:
         if flag in SITUP_CONFIG["FEEDBACK"]:
             feedback_message += SITUP_CONFIG["FEEDBACK"][flag] + " "
-        elif flag in ADVANCED_FEEDBACK:  # For any advanced feedback flags
+        elif flag in ADVANCED_FEEDBACK:
             feedback_message += ADVANCED_FEEDBACK[flag] + " "
     
     feedback_message = feedback_message.strip()
     
+    # Calculate exercise progress (0-1)
+    # Based on hip angle: 0 = lying flat, 1 = full situp
+    progress = 0
+    if avg_hip_angle < 160:
+        progress = min(1.0, (160 - avg_hip_angle) / (160 - SITUP_CONFIG["HIP_ANGLE_OPTIMAL"]))
+
     # Log the rep if this is a new rep and we have a session ID
     if counter > state.get("counter", 0) and session_id:
         try:
@@ -119,7 +125,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
                 "hip_angle": avg_hip_angle,
                 "neck_strain": neck_strain_detected
             }
-            record_rep(session_id, "situps", feedback, metrics)
+            record_rep(session_id, "situps", feedback_flags, metrics)
         except ImportError:
             # Session state module not available, continue without logging
             pass
@@ -129,7 +135,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     affected_segments = []
     
     # Map feedback flags to affected joints
-    for flag in feedback:
+    for flag in feedback_flags:
         if flag in FEEDBACK_TO_JOINTS:
             joint_groups = FEEDBACK_TO_JOINTS[flag]
             for group in joint_groups:
@@ -162,6 +168,12 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         
     if 24 in affected_joints or 26 in affected_joints:  # Right hip or knee
         affected_segments.append(["right_hip", "right_knee"])
+        
+    # Advanced metrics
+    advanced_metrics = {
+        "hip_angle": avg_hip_angle,
+        "neck_strain": neck_strain_detected
+    }
 
     new_state = {
         "counter": counter,
@@ -171,9 +183,11 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "feedback": feedback_message,
         "rep_score": rep_score,
         "score_label": score_label,
-        "feedback_flags": feedback,
+        "feedback_flags": feedback_flags,
         "affected_joints": affected_joints,
-        "affected_segments": affected_segments
+        "affected_segments": affected_segments,
+        "progress": progress,  # Add the progress field
+        "advanced_metrics": advanced_metrics
     }
     
     exercise_state["situps"] = new_state

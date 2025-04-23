@@ -35,35 +35,22 @@ def check_body_alignment(shoulder, hip, ankle):
     mse = np.mean((y - line_y) ** 2)
     return mse  # Lower is better (closer to a straight line)
 
-# Setup MediaPipe Pose for landmark indexing
-mp_pose = mp.solutions.pose
-
 def process_landmarks(landmarks, tolerance, session_id=None):
     """
     Process landmarks for pushup form analysis with enhanced feedback
     """
     try:
         # Extract landmarks
-        left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                        landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-        right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
-                         landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-        left_elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,
-                     landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-        right_elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
-                      landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-        left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
-                     landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-        right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
-                      landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-        left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
-                   landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-        right_hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
-                    landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-        left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,
-                     landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-        right_ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
-                      landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+        left_shoulder = [landmarks[11]['x'], landmarks[11]['y']]
+        right_shoulder = [landmarks[12]['x'], landmarks[12]['y']]
+        left_elbow = [landmarks[13]['x'], landmarks[13]['y']]
+        right_elbow = [landmarks[14]['x'], landmarks[14]['y']]
+        left_wrist = [landmarks[15]['x'], landmarks[15]['y']]
+        right_wrist = [landmarks[16]['x'], landmarks[16]['y']]
+        left_hip = [landmarks[23]['x'], landmarks[23]['y']]
+        right_hip = [landmarks[24]['x'], landmarks[24]['y']]
+        left_ankle = [landmarks[27]['x'], landmarks[27]['y']]
+        right_ankle = [landmarks[28]['x'], landmarks[28]['y']]
     except Exception:
         return {"error": "Insufficient landmarks data."}
     
@@ -97,19 +84,19 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     # Check elbow angle (depth)
     if stage == "down":
         if avg_elbow_angle > PUSHUP_CONFIG["ELBOW_ANGLE_MAX"] + 10:
-            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_SHALLOW"])
+            feedback_flags.append("TOO_SHALLOW")
         elif avg_elbow_angle < PUSHUP_CONFIG["ELBOW_ANGLE_MIN"] - 5:
-            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_DEEP"])
+            feedback_flags.append("TOO_DEEP")
         else:
-            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["GOOD_DEPTH"])
+            feedback_flags.append("GOOD_DEPTH")
     
     # Check body alignment
     if alignment_score > PUSHUP_CONFIG["ALIGNMENT_THRESHOLD"]:
         # Determine if hips are too high or too low
         if mid_hip[1] < (mid_shoulder[1] + mid_ankle[1])/2:  # Y increases downward
-            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_HIGH"])
+            feedback_flags.append("HIPS_TOO_HIGH")
         else:
-            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_LOW"])
+            feedback_flags.append("HIPS_TOO_LOW")
     
     # If no specific feedback issues, provide general positive feedback
     if not feedback_flags:
@@ -185,6 +172,12 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     
     if 23 in affected_joints or 24 in affected_joints:  # Both hips
         affected_segments.append(["left_hip", "right_hip"])
+    
+    # Advanced metrics
+    advanced_metrics = {
+        "elbow_angle": avg_elbow_angle,
+        "alignment_score": alignment_score
+    }
 
     new_state = {
         "counter": counter,
@@ -197,7 +190,8 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "score_label": score_label,
         "progress": progress,
         "affected_joints": affected_joints,
-        "affected_segments": affected_segments
+        "affected_segments": affected_segments,
+        "advanced_metrics": advanced_metrics
     }
     
     exercise_state["pushups"] = new_state
