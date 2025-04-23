@@ -163,7 +163,7 @@ const Record: React.FC = () => {
       return `${seconds}s`;
     }
   };
-  
+
   // Format exercise name for display
   const formatExerciseName = (name: string) => {
     return name.replace(/_/g, ' ')
@@ -182,7 +182,7 @@ const Record: React.FC = () => {
 
   // Get label for the feedback
   const getFeedbackLabel = (feedback: string) => {
-    const labels: {[key: string]: string} = {
+    const labels: { [key: string]: string } = {
       'GOOD_CURL': 'Good form',
       'INCOMPLETE_CURL': 'Incomplete movement',
       'SHOULDER_SWINGING': 'Shoulder swinging',
@@ -190,7 +190,7 @@ const Record: React.FC = () => {
       'ELBOW_NOT_FIXED': 'Elbow not fixed',
       'INCOMPLETE_EXTENSION': 'Incomplete extension'
     };
-    
+
     return labels[feedback] || feedback.replace(/_/g, ' ').toLowerCase();
   };
 
@@ -373,12 +373,22 @@ const Record: React.FC = () => {
                                       <div className="mt-2 space-y-2">
                                         {set.commonFeedback.map((feedback: string, idx: number) => (
                                           <div key={idx} className="flex items-center">
-                                            {feedback === 'GOOD_CURL' ? (
-                                              <CheckCircle size={16} className="text-success-500 mr-2 flex-shrink-0" />
-                                            ) : (
-                                              <AlertTriangle size={16} className="text-warning-500 mr-2 flex-shrink-0" />
-                                            )}
-                                            <span>{getFeedbackLabel(feedback)}</span>
+                                            {
+                                              (
+                                                feedback === "Good bicep curl form" ||
+                                                feedback === "Good squat form" ||
+                                                feedback === "Good deadlift form" ||
+                                                feedback === "Good pushup form" ||
+                                                feedback === "Good lunge form" ||
+                                                feedback === "Good situp form"
+                                              ) ? (
+                                                <CheckCircle size={14} className="text-success-500 mr-2 flex-shrink-0" />
+                                              ) : (
+                                                <AlertTriangle size={14} className="text-warning-500 mr-2 flex-shrink-0" />
+                                              )
+                                            }
+
+                                            <span>{feedback}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -399,8 +409,8 @@ const Record: React.FC = () => {
                                     key={level}
                                     size={20}
                                     className={`${level <= sessionDetails[session.id].painLevel!
-                                        ? 'text-warning-500 fill-warning-500'
-                                        : 'text-dark-600'
+                                      ? 'text-warning-500 fill-warning-500'
+                                      : 'text-dark-600'
                                       } mr-1`}
                                   />
                                 ))}

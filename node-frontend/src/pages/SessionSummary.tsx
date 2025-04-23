@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Calendar, 
-  Check, 
-  Clock, 
-  Star, 
-  Trophy, 
-  BarChart3, 
-  CheckCircle, 
-  AlertTriangle 
+import {
+  Calendar,
+  Check,
+  Clock,
+  Star,
+  Trophy,
+  BarChart3,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import Card, { CardContent, CardHeader } from '../components/Card';
 import Button from '../components/Button';
@@ -34,7 +34,7 @@ const SessionSummary = () => {
         } else {
           throw new Error('Invalid response format');
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch session summary:', err);
@@ -100,7 +100,7 @@ const SessionSummary = () => {
       'TOO_FAST': 'Moving too fast',
       'ELBOW_NOT_FIXED': 'Elbow not fixed'
     };
-    
+
     return labels[feedback] || feedback.replace(/_/g, ' ').toLowerCase();
   };
 
@@ -142,7 +142,7 @@ const SessionSummary = () => {
             Review your performance and progress
           </p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/records')}>
+        <Button variant="outline" onClick={() => navigate('/record')}>
           Back to History
         </Button>
       </div>
@@ -259,9 +259,9 @@ const SessionSummary = () => {
                               {set.averageScore}%
                             </div>
                             <div className="text-sm text-dark-300">
-                              {set.averageScore >= 90 ? 'Excellent' : 
-                               set.averageScore >= 75 ? 'Good' : 
-                               set.averageScore >= 60 ? 'Fair' : 'Needs Improvement'}
+                              {set.averageScore >= 90 ? 'Excellent' :
+                                set.averageScore >= 75 ? 'Good' :
+                                  set.averageScore >= 60 ? 'Fair' : 'Needs Improvement'}
                             </div>
                           </div>
                         </div>
@@ -277,12 +277,21 @@ const SessionSummary = () => {
                             <ul className="space-y-2">
                               {set.commonFeedback.map((feedback, i) => (
                                 <li key={i} className="flex items-center">
-                                  {feedback === 'GOOD_CURL' ? (
-                                    <CheckCircle size={14} className="text-success-500 mr-2 flex-shrink-0" />
-                                  ) : (
-                                    <AlertTriangle size={14} className="text-warning-500 mr-2 flex-shrink-0" />
-                                  )}
-                                  <span>{getFeedbackLabel(feedback)}</span>
+                                  {
+                                    (
+                                      feedback === "Good bicep curl form" ||
+                                      feedback === "Good squat form" ||
+                                      feedback === "Good deadlift form" ||
+                                      feedback === "Good pushup form" ||
+                                      feedback === "Good lunge form" ||
+                                      feedback === "Good situp form"
+                                    ) ? (
+                                      <CheckCircle size={14} className="text-success-500 mr-2 flex-shrink-0" />
+                                    ) : (
+                                      <AlertTriangle size={14} className="text-warning-500 mr-2 flex-shrink-0" />
+                                    )
+                                  }
+                                  <span>{feedback}</span>
                                 </li>
                               ))}
                             </ul>
@@ -308,13 +317,13 @@ const SessionSummary = () => {
 
           {/* Actions */}
           <div className="flex flex-col md:flex-row justify-between gap-4 mt-8">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/records')}
+            <Button
+              variant="outline"
+              onClick={() => navigate('/record')}
             >
               Back to History
             </Button>
-            
+
             <div className="flex gap-3">
               {/* <Button 
                 variant="secondary"
@@ -322,9 +331,9 @@ const SessionSummary = () => {
               >
                 Go to Planner
               </Button> */}
-              <Button 
+              <Button
                 variant="primary"
-                onClick={() => navigate('/exercise')}
+                onClick={() => navigate('/planner')}
               >
                 Start New Session
               </Button>

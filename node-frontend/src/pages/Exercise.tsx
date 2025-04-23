@@ -107,6 +107,10 @@ const Exercise: React.FC = () => {
   const [isSendingLogs, setIsSendingLogs] = useState<boolean>(false);
   const userId = localStorage.getItem("userId") || "guest"; // Get the user ID from localStorage or use "guest"
   const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date());
+  const latestFeedbackRef = useRef<{
+    affected_joints: string[];
+    affected_segments: [string, string][];
+  }>({ affected_joints: [], affected_segments: [] });
 
   // Exercise Parameters
   const totalSets = 3;
@@ -482,6 +486,16 @@ const Exercise: React.FC = () => {
               color: "#00FF00",  // Default green color
               lineWidth: 2
             });
+            // 2a) Highlight bad segments in red
+            latestFeedbackRef.current.affected_segments.forEach(([start, end]) => {
+              const s = getJointIndex(start), e = getJointIndex(end);
+              if (s !== -1 && e !== -1) {
+                drawConnectors(ctx, results.poseLandmarks, [[s, e]], {
+                  color: "#FF0000", lineWidth: 4
+                });
+              }
+            });
+
 
             // Highlight problem segments if feedback available
             if (latestFeedback?.affected_segments) {
@@ -503,6 +517,17 @@ const Exercise: React.FC = () => {
               lineWidth: 1,
               fillColor: "#FFFFFF"  // White fill
             });
+            // 2b) Highlight bad joints as big red dots
+            latestFeedbackRef.current.affected_joints.forEach(idx => {
+              const lm = results.poseLandmarks[idx];
+              if (lm) {
+                ctx.fillStyle = "#FF0000";
+                ctx.beginPath();
+                ctx.arc(lm.x * canvas.width, lm.y * canvas.height, 8, 0, 2 * Math.PI);
+                ctx.fill();
+              }
+            });
+
 
             // Highlight problem joints if feedback available
             if (latestFeedback?.affected_joints) {
@@ -546,7 +571,10 @@ const Exercise: React.FC = () => {
                   setNumber: currentSetRef.current       // ← tell the backend which set we're on
                 }),
               })
-                .then(res => res.json())
+                .then(res => {
+                  // console.log("Raw response:", res.json); // 👈 Logs the full Response object
+                  return res.json(); // Still return the parsed JSON for next `.then`
+                })
                 // Inside the onResults callback where feedback data is processed
                 .then((data: FeedbackData) => {
                   if (setCompleteDialogShown.current) {
@@ -567,6 +595,9 @@ const Exercise: React.FC = () => {
 
                   setStage(data.repState ?? data.stage ?? "N/A");
                   setFeedback(data.feedback ?? "N/A");
+                  // console.log(`Stage: ${data.repState ?? data.stage ?? "N/A"}`);
+                  // console.log(`Feedback: ${data.feedback ?? "N/A"}`);
+                  // console.log('Feedback flags:', data.feedback_flags ?? []);
                   setLatestFeedback({
                     affected_joints: data.affected_joints ?? [],
                     affected_segments: data.affected_segments ?? [],
@@ -575,6 +606,11 @@ const Exercise: React.FC = () => {
                     score_label: data.score_label ?? "",
                     advanced_metrics: data.advanced_metrics ?? {}
                   });
+                  latestFeedbackRef.current = {
+                    affected_joints: data.affected_joints ?? [],
+                    affected_segments: data.affected_segments ?? []
+                  };
+
 
                   // Store logs for session tracking
                   const currentSessionId = sessionIdRef.current;
@@ -829,7 +865,7 @@ const Exercise: React.FC = () => {
       } else {
         console.log("All sets done – completing workout.");
         await completeSession();
-        navigate("/sessions/${sessionId}");
+        navigate(`/sessions/${sessionIdRef.current}`);
       }
     } catch (error) {
       console.error("Error in set completion:", error);
@@ -876,11 +912,11 @@ const Exercise: React.FC = () => {
               if (sessionId && sessionLogs.length > 0) {
                 saveLogs().then(() => {
                   completeSession().then(() => {
-                    navigate("/sessions/${sessionId}");
+                    navigate(`/sessions/${sessionIdRef.current}`);
                   });
                 });
               } else {
-                navigate("/sessions/${sessionId}");
+                navigate(`/sessions/${sessionIdRef.current}`);
               }
             }}
           >
