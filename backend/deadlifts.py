@@ -176,25 +176,25 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
     # Calculate rep score
     rep_score, score_label = calculate_rep_score("deadlifts", feedback_flags)
 
-    # Prepare informative feedback message
+    # Prepare informative feedback message using the configured feedback messages
     feedback_message = ""
     for flag in feedback_flags:
-        if flag == "BACK_TOO_BENT":
-            feedback_message += "Keep your back straighter. "
-        elif flag == "NOT_DEEP_ENOUGH":
-            feedback_message += "Bend lower, hinging at the hips. "
-        elif flag == "TOO_DEEP":
-            feedback_message += "Don't go too low. "
-        elif flag == "STAND_STRAIGHT":
-            feedback_message += "Stand fully upright at the top. "
+        if flag in DEADLIFT_CONFIG["FEEDBACK"]:
+            feedback_message += DEADLIFT_CONFIG["FEEDBACK"][flag] + " "
         elif flag == "DEADLIFT_BAR_PATH":
-            feedback_message += "Keep the bar close to your body. "
+            feedback_message += ADVANCED_FEEDBACK["DEADLIFT_BAR_PATH"] + " "
         elif flag == "DEADLIFT_LUMBAR_FLEXION":
-            feedback_message += "Your lower back is rounding - maintain a neutral spine. "
+            feedback_message += ADVANCED_FEEDBACK["DEADLIFT_LUMBAR_FLEXION"] + " "
         elif flag == "DEADLIFT_TEMPO_FAST":
-            feedback_message += "Control the lift, avoid jerky movements. "
-        elif flag == "GOOD_FORM":
-            feedback_message += "Good deadlift form! "
+            feedback_message += ADVANCED_FEEDBACK["DEADLIFT_TEMPO_FAST"] + " "
+    
+    feedback_message = feedback_message.strip()
+    
+    # Calculate exercise progress (0-1) for reference poses
+    # Based on back angle: 0 = upright, 1 = bent
+    progress = 0
+    if avg_back_angle < 160:
+        progress = min(1.0, (160 - avg_back_angle) / (160 - DEADLIFT_CONFIG["HIP_HINGE_DEPTH_MIN"]))
 
     # Prepare all metrics for session tracking
     advanced_metrics = {
@@ -262,6 +262,7 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
         "feedback_flags": feedback_flags,
         "rep_score": rep_score,
         "score_label": score_label,
+        "progress": progress,  # Add progress field
         "advanced_metrics": advanced_metrics,
         "affected_joints": affected_joints,
         "affected_segments": affected_segments

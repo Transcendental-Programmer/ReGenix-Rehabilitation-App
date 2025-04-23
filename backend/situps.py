@@ -1,6 +1,6 @@
 import numpy as np
 from state import exercise_state
-from feedback_config import SITUP_CONFIG, FEEDBACK_TO_JOINTS
+from feedback_config import SITUP_CONFIG, FEEDBACK_TO_JOINTS, ADVANCED_FEEDBACK
 from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
@@ -100,9 +100,16 @@ def process_landmarks(landmarks, tolerance, session_id=None):
 
     # Calculate rep score
     rep_score, score_label = calculate_rep_score("situps", feedback)
+
+    # Compile the feedback into a string using the configured feedback messages
+    feedback_message = ""
+    for flag in feedback:
+        if flag in SITUP_CONFIG["FEEDBACK"]:
+            feedback_message += SITUP_CONFIG["FEEDBACK"][flag] + " "
+        elif flag in ADVANCED_FEEDBACK:  # For any advanced feedback flags
+            feedback_message += ADVANCED_FEEDBACK[flag] + " "
     
-    # Compile the feedback into a string
-    feedback_message = " | ".join(feedback)
+    feedback_message = feedback_message.strip()
     
     # Log the rep if this is a new rep and we have a session ID
     if counter > state.get("counter", 0) and session_id:

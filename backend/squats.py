@@ -181,45 +181,58 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         counter += 1
 
     # Generate detailed feedback including advanced metrics
-    feedback = []
+    feedback_flags = []
     
     # Check squat depth
     if stage == "down":
         if avg_knee_angle > SQUAT_CONFIG["KNEE_ANGLE_MAX"] + 10:
-            feedback.append(SQUAT_CONFIG["FEEDBACK"]["DEPTH_TOO_SHALLOW"])
+            feedback_flags.append("DEPTH_TOO_SHALLOW")
         else:
-            feedback.append(SQUAT_CONFIG["FEEDBACK"]["DEPTH_GOOD"])
+            feedback_flags.append("DEPTH_GOOD")
     
     # Check knee forward projection
     if avg_knee_projection > SQUAT_CONFIG["KNEE_FORWARD_MAX"]:
-        feedback.append(SQUAT_CONFIG["FEEDBACK"]["KNEES_TOO_FORWARD"])
+        feedback_flags.append("KNEES_TOO_FORWARD")
     
     # Check torso angle
     if avg_torso_angle > SQUAT_CONFIG["TORSO_ANGLE_MAX"]:
-        feedback.append(SQUAT_CONFIG["FEEDBACK"]["BACK_TOO_BENT"])
+        feedback_flags.append("BACK_TOO_BENT")
     
     # Advanced feedback based on new metrics
     if avg_knee_valgus > SQUAT_METRICS["KNEE_VALGUS_MAX"]:
-        feedback.append(ADVANCED_FEEDBACK["SQUAT_KNEE_VALGUS"])
+        feedback_flags.append("SQUAT_KNEE_VALGUS")
         
     if knee_asymmetry > SQUAT_METRICS["KNEE_SYMMETRY_MAX"]:
-        feedback.append(ADVANCED_FEEDBACK["SQUAT_ASYMMETRY"])
+        feedback_flags.append("SQUAT_ASYMMETRY")
         
     # Check descent speed if we just completed a descent
     if stage == "down" and "descent_time" in state:
         descent_time = state["descent_time"]
         if descent_time < SQUAT_METRICS["DESCENT_TIME_MIN"]:
-            feedback.append(ADVANCED_FEEDBACK["SQUAT_DESCENT_FAST"])
+            feedback_flags.append("SQUAT_DESCENT_FAST")
     
     # If no specific feedback issues, provide general positive feedback
-    if not feedback:
-        feedback = [SQUAT_CONFIG["FEEDBACK"]["GOOD_FORM"]]
-
-    # Compile the feedback into a string
-    feedback_message = " | ".join(feedback)
+    if not feedback_flags:
+        feedback_flags.append("GOOD_FORM")
 
     # Calculate rep score
-    rep_score, score_label = calculate_rep_score("squats", feedback)
+    rep_score, score_label = calculate_rep_score("squats", feedback_flags)
+    
+    # Compile the feedback into a string using the configured feedback messages
+    feedback_message = ""
+    for flag in feedback_flags:
+        if flag in SQUAT_CONFIG["FEEDBACK"]:
+            feedback_message += SQUAT_CONFIG["FEEDBACK"][flag] + " "
+        elif flag in ADVANCED_FEEDBACK:  # For any advanced feedback flags
+            feedback_message += ADVANCED_FEEDBACK[flag] + " "
+    
+    feedback_message = feedback_message.strip()
+    
+    # Calculate exercise progress (0-1) for reference poses
+    # Based on knee angle: 0 = straight leg, 1 = full bend
+    progress = 0
+    if avg_knee_angle < 160:
+        progress = min(1.0, (160 - avg_knee_angle) / (160 - SQUAT_CONFIG["KNEE_ANGLE_OPTIMAL"]))
 
     # Prepare all metrics for session tracking
     advanced_metrics = {
@@ -236,7 +249,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     if counter > state.get("counter", 0) and session_id:
         try:
             from session_state import record_rep
-            record_rep(session_id, "squats", feedback, advanced_metrics)
+            record_rep(session_id, "squats", feedback_flags, advanced_metrics)
         except ImportError:
             # Session state module not available, continue without logging
             pass
@@ -246,7 +259,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     affected_segments = []
     
     # Map feedback flags to affected joints
-    for flag in feedback:
+    for flag in feedback_flags:
         if flag in FEEDBACK_TO_JOINTS:
             joint_groups = FEEDBACK_TO_JOINTS[flag]
             for group in joint_groups:
@@ -293,13 +306,14 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "kneeValgus": avg_knee_valgus,
         "kneeAsymmetry": knee_asymmetry,
         "feedback": feedback_message,
-        "feedback_flags": feedback,
+        "feedback_flags": feedback_flags,
         "rep_score": rep_score,
         "score_label": score_label,
         "descent_time": state.get("descent_time", 0),
         "concentric_time": state.get("concentric_time", 0),
         "affected_joints": affected_joints,
-        "affected_segments": affected_segments
+        "affected_segments": affected_segments,
+        "progress": progress  # Add progress field
     }
     
     exercise_state["squats"] = new_state

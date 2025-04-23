@@ -119,9 +119,14 @@ def process_landmarks(landmarks, tolerance=0.0, session_id=None):
     if not feedback_flags and (stage == "up" or (stage == "down" and avg_elbow_angle > 150)):
         feedback_flags.append("GOOD_CURL")
 
-    # Compile the feedback into a string
-    feedback_message = " | ".join(feedback_flags)
-
+    # Compile the feedback into a string using the configured feedback messages
+    feedback_message = ""
+    for flag in feedback_flags:
+        if flag in BICEP_CURL_CONFIG["FEEDBACK"]:
+            feedback_message += BICEP_CURL_CONFIG["FEEDBACK"][flag] + " "
+    
+    feedback_message = feedback_message.strip()
+    
     # Calculate exercise progress (0-1) for reference poses
     # Based on elbow angle: 0 = straight arm, 1 = full bend
     progress = 0

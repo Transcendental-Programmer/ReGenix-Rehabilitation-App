@@ -1,7 +1,7 @@
 import numpy as np
 import mediapipe as mp
 from state import exercise_state
-from feedback_config import PUSHUP_CONFIG, FEEDBACK_TO_JOINTS
+from feedback_config import PUSHUP_CONFIG, FEEDBACK_TO_JOINTS, ADVANCED_FEEDBACK
 from score_config import calculate_rep_score
 
 def calculate_angle(a, b, c):
@@ -92,35 +92,50 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         counter += 1
     
     # Generate detailed feedback
-    feedback = []
+    feedback_flags = []
     
     # Check elbow angle (depth)
     if stage == "down":
         if avg_elbow_angle > PUSHUP_CONFIG["ELBOW_ANGLE_MAX"] + 10:
-            feedback.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_SHALLOW"])
+            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_SHALLOW"])
         elif avg_elbow_angle < PUSHUP_CONFIG["ELBOW_ANGLE_MIN"] - 5:
-            feedback.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_DEEP"])
+            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["TOO_DEEP"])
         else:
-            feedback.append(PUSHUP_CONFIG["FEEDBACK"]["GOOD_DEPTH"])
+            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["GOOD_DEPTH"])
     
     # Check body alignment
     if alignment_score > PUSHUP_CONFIG["ALIGNMENT_THRESHOLD"]:
         # Determine if hips are too high or too low
         if mid_hip[1] < (mid_shoulder[1] + mid_ankle[1])/2:  # Y increases downward
-            feedback.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_HIGH"])
+            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_HIGH"])
         else:
-            feedback.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_LOW"])
+            feedback_flags.append(PUSHUP_CONFIG["FEEDBACK"]["HIPS_TOO_LOW"])
     
     # If no specific feedback issues, provide general positive feedback
-    if not feedback:
-        feedback = [PUSHUP_CONFIG["FEEDBACK"]["GOOD_FORM"]]
+    if not feedback_flags:
+        feedback_flags.append("GOOD_FORM")
 
     # Calculate rep score
-    rep_score, score_label = calculate_rep_score("pushups", feedback)
-
-    # Compile the feedback into a string
-    feedback_message = " | ".join(feedback)
+    rep_score, score_label = calculate_rep_score("pushups", feedback_flags)
     
+    # Compile the feedback into a string using the configured feedback messages
+    feedback_message = ""
+    for flag in feedback_flags:
+        if flag in PUSHUP_CONFIG["FEEDBACK"]:
+            feedback_message += PUSHUP_CONFIG["FEEDBACK"][flag] + " "
+        elif flag in ADVANCED_FEEDBACK:
+            feedback_message += ADVANCED_FEEDBACK[flag] + " "
+    
+    feedback_message = feedback_message.strip()
+    if not feedback_message:
+        feedback_message = "Check your form"
+    
+    # Calculate exercise progress (0-1)
+    # Based on elbow angle: 0 = straight arms, 1 = full bend
+    progress = 0
+    if avg_elbow_angle < 150:
+        progress = min(1.0, (150 - avg_elbow_angle) / (150 - PUSHUP_CONFIG["ELBOW_ANGLE_OPTIMAL"]))
+
     # Log the rep if this is a new rep and we have a session ID
     if counter > state.get("counter", 0) and session_id:
         try:
@@ -129,7 +144,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
                 "elbow_angle": avg_elbow_angle,
                 "alignment_score": alignment_score
             }
-            record_rep(session_id, "pushups", feedback, metrics)
+            record_rep(session_id, "pushups", feedback_flags, metrics)
         except ImportError:
             # Session state module not available, continue without logging
             pass
@@ -139,7 +154,7 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     affected_segments = []
     
     # Map feedback flags to affected joints
-    for flag in feedback:
+    for flag in feedback_flags:
         if flag in FEEDBACK_TO_JOINTS:
             joint_groups = FEEDBACK_TO_JOINTS[flag]
             for group in joint_groups:
@@ -175,11 +190,12 @@ def process_landmarks(landmarks, tolerance, session_id=None):
         "counter": counter,
         "stage": stage,
         "elbowAngle": avg_elbow_angle,
-        "alignmentScore": alignment_score,
+        "bodyAlignment": alignment_score,
         "feedback": feedback_message,
+        "feedback_flags": feedback_flags,
         "rep_score": rep_score,
         "score_label": score_label,
-        "feedback_flags": feedback,
+        "progress": progress,
         "affected_joints": affected_joints,
         "affected_segments": affected_segments
     }

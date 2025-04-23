@@ -146,8 +146,13 @@ def process_landmarks(landmarks, tolerance, session_id=None):
     # Calculate rep score
     rep_score, score_label = calculate_rep_score("lunges", feedback_flags)
     
-    # Compile the feedback into a string
-    feedback_message = " | ".join(feedback_flags)
+    # Compile the feedback into a string using the configured feedback messages
+    feedback_message = ""
+    for flag in feedback_flags:
+        if flag in LUNGE_CONFIG["FEEDBACK"]:
+            feedback_message += LUNGE_CONFIG["FEEDBACK"][flag] + " "
+    
+    feedback_message = feedback_message.strip()
 
     # Calculate exercise progress (0-1) for reference poses
     # Based on knee angle: 0 = straight leg, 1 = full bend
